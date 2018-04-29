@@ -15,70 +15,105 @@ library(tm)       #recommended
 library(pdftools)
 library(RWeka)
 library(tidytext) #recommended
-#library(quenteda) #Recommended
+library(quanteda) #Recommended
+library(officer) # for reading docx
+library(dplyr)
+library(zoo) #for row fill down function track names
 
 # Define a function that computes file paths relative to where root .git folder is located
 F <- is_git_root$make_fix_file() 
 # Example usage: F("Data/Raw") 
 
 # Get a List of all files named with a key word, use regex pattern to identify only the athletics graded results csv files
-filenames <- list.files(F("Data/Raw") , pattern = "*.pdf", full.names = TRUE)
-
-# Load and bind all data sets
-#raw.data <- rbindlist(lapply(filenames,fread))
+FilenamesPDF <- list.files(F("Data/Raw") , pattern = "*.pdf", full.names = TRUE)
+FilenameDocx <- list.files(F("Data/Raw") , pattern = "*.docx", full.names = TRUE)
 
 
-# TODO: the heading styles arent being interpreted
-# maybe this package can help https://cran.r-project.org/web/packages/officer/vignettes/word.html
-tt <- readPDF(control = list(text = "-layout")) 
-rr1 <- tt(elem = list(uri = filenames[[1]]), language = "en", id = "id1") 
-MyCorpus <- c(VCorpus(VectorSource(rr1))) 
+# Working with word documents:
+# Read in each file and use doc summary to map styles used in document as music lyric components
+# Then apply some common hirarchial groupings: Artist, Album, track name and grouping
 
-BigramTokenizer <- function(x) {RWeka::NGramTokenizer(x, RWeka::Weka_control(min = 1, max = 1))} 
-dtm <- DocumentTermMatrix(MyCorpus, control = list(tokenize = BigramTokenizer, 
-                                                   weighting = weightTf, wordLengths = c(3, 60), bounds = list(global = c(1,Inf)))) 
-
-data1 <- pdf_text(filenames[1])
-data2 <- pdf_text(filenames[2])
-data3 <- pdf_text(filenames[3])
-data4 <- pdf_text(filenames[4])
-data5 <- pdf_text(filenames[5])
-data6 <- pdf_text(filenames[6])
+doc01 <- read_docx(F("Data/Raw/Daft Punk - Discovery.docx"))
+raw.data01 <- docx_summary(doc01) %>%
+  mutate(CATMusicArtist = "Daft Punk",
+         CATMusicAlbum = "Discovery",
+         CATTrackName = ifelse(style_name == "heading 3", text, "None"),
+         CATTrackName = na.locf(CATTrackName), #fill down track number
+         style_name = ifelse(is.na(style_name), "body", style_name)
+         ) %>%
+  group_by(CATTrackName) %>%
+  mutate(NUMTrackLyricLineNumber = sequence(n()) - 1) #using minus 1 so we dont include the heading
 
 
+doc02 <- read_docx(F("Data/Raw/U2 - The Joshua Tree.docx"))
+raw.data02 <- docx_summary(doc02) %>%
+  mutate(CATMusicArtist = "U2",
+         CATMusicAlbum = "The Joshua Tree",
+         CATTrackName = ifelse(style_name == "heading 3", text, "None"),
+         CATTrackName = na.locf(CATTrackName), #fill down track number
+         style_name = ifelse(is.na(style_name), "body", style_name)
+  ) %>%
+  group_by(CATTrackName) %>%
+  mutate(NUMTrackLyricLineNumber = sequence(n()) - 1) #using minus 1 so we dont include the heading
+  
+doc03 <- read_docx(F("Data/Raw/Elton John - Honky Chateau.docx"))
+raw.data03 <- docx_summary(doc03) %>%
+  mutate(CATMusicArtist = "Elton John",
+         CATMusicAlbum = "Honky Chateau",
+         CATTrackName = ifelse(style_name == "heading 3", text, "None"),
+         CATTrackName = na.locf(CATTrackName), #fill down track number
+         style_name = ifelse(is.na(style_name), "body", style_name)
+  ) %>%
+  group_by(CATTrackName) %>%
+  mutate(NUMTrackLyricLineNumber = sequence(n()) - 1) #using minus 1 so we dont include the heading
 
-#========== EXTRA DATA FROM SPOTIFY =======================
+
+doc04 <- read_docx(F("Data/Raw/Iron Maiden - Powerslave.docx"))
+raw.data04 <- docx_summary(doc04) %>%
+  mutate(CATMusicArtist = "Iron Maiden",
+         CATMusicAlbum = "Powerslave",
+         CATTrackName = ifelse(style_name == "heading 3", text, "None"),
+         CATTrackName = na.locf(CATTrackName), #fill down track number
+         style_name = ifelse(is.na(style_name), "body", style_name)
+  ) %>%
+  group_by(CATTrackName) %>%
+  mutate(NUMTrackLyricLineNumber = sequence(n()) - 1) #using minus 1 so we dont include the heading
+  
+  
+doc05 <- read_docx(F("Data/Raw/Killswitch Engage - Alive or Just Breathing.docx"))
+raw.data05 <- docx_summary(doc05) %>%
+  mutate(CATMusicArtist = "Killswitch Engage",
+         CATMusicAlbum = "Alive or Just Breathing",
+         CATTrackName = ifelse(style_name == "heading 3", text, "None"),
+         CATTrackName = na.locf(CATTrackName), #fill down track number
+         style_name = ifelse(is.na(style_name), "body", style_name)
+  ) %>%
+  group_by(CATTrackName) %>%
+  mutate(NUMTrackLyricLineNumber = sequence(n()) - 1) #using minus 1 so we dont include the heading
+  
+  
+doc06 <- read_docx(F("Data/Raw/Led Zeppelin - Physical Graffiti.docx"))
+raw.data06 <- docx_summary(doc06) %>%
+  mutate(CATMusicArtist = "Led Zeppelin",
+         CATMusicAlbum = "Physical Graffiti",
+         CATTrackName = ifelse(style_name == "heading 3", text, "None"),  #set the track name based on heading 3
+         CATTrackName = na.locf(CATTrackName), #fill down track number
+         style_name = ifelse(is.na(style_name), "body", style_name)
+  ) %>%
+  group_by(CATTrackName) %>%
+  mutate(NUMTrackLyricLineNumber = sequence(n()) - 1) #using minus 1 so we dont include the heading
+  
+
+# We can keep these datasets in data frame format for now, dataset size is tiny.
+raw.dsetnames <- list(raw.data01, raw.data02, raw.data03, raw.data04, raw.data05, raw.data06)
+# Append all above raw datasets together
+raw.data <- rbindlist(raw.dsetnames)
 
 
-#REF: https://beta.developer.spotify.com/dashboard/applications
-# Sign up developer.spotify.com
-# API DOCO:https://developer.spotify.com/web-api/
-# Create an "app" via the dashboard to create the client ID and client secret
+# Save Feather file from 
+write_feather(raw.data, F("Data/Raw/raw.AllMusicLyrics.feather"))
 
-devtools::install_github('charlie86/spotifyr')
-install.packages('spotifyr')
-library(spotifyr)
-# https://github.com/charlie86/spotifyr
+# ======================================================================================================================== #
+# END OF PROGRAM #
+# ======================================================================================================================== #
 
-# app name "MusicLyricAnalysis1"
-Sys.setenv(SPOTIFY_CLIENT_ID = "addtokenhere")
-Sys.setenv(SPOTIFY_CLIENT_SECRET = "addtokenhere")
-
-access_token <- get_spotify_access_token()
-
-#Extract data from spotify
-
-spotify_df_U2 <- get_artist_audio_features('U2',access_token)
-spotify_df_DaftPunk <- get_artist_audio_features('Daft Punk',access_token)
-spotify_df_EltonJohn <- get_artist_audio_features('Elton John',access_token)
-spotify_df_LedZeppelin <- get_artist_audio_features('Led Zeppelin',access_token)
-spotify_df_KillswitchEngage <- get_artist_audio_features('Killswitch Engage',access_token)
-spotify_df_IronMaiden <- get_artist_audio_features('Iron Maiden',access_token)
-
-# other nice functions to try
-get_album_popularity()
-get_album_tracks()
-get_albums()
-get_artist_albums()
-get_artists()
-#spotifyr::

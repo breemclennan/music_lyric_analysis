@@ -25,7 +25,7 @@ F <- is_git_root$make_fix_file()
 # Example usage: F("Data/Raw") 
 
 # Get a List of all files named with a key word, use regex pattern to identify only the athletics graded results csv files
-FilenamesPDF <- list.files(F("Data/Raw") , pattern = "*.pdf", full.names = TRUE)
+#FilenamesPDF <- list.files(F("Data/Raw") , pattern = "*.pdf", full.names = TRUE)
 FilenameDocx <- list.files(F("Data/Raw") , pattern = "*.docx", full.names = TRUE)
 
 

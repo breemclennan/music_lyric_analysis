@@ -35,9 +35,9 @@ wrk.data <- setDT(read_feather(glue(F("Data/Raw/raw.AllMusicLyrics.feather"))))
 
 # USEFUL THINGS!
 # IF text contains "[Instrumental]" , flag track as instrumental
+
 wrk.01_Data_Prep <- wrk.data %>%
-  mutate(BINTrackIsInstrumental = ifelse(style_name == "body" & text == "[Instrumental]", 1, 0)) %>%
-  mutate(BINTrackIsInstrumental = ifelse(lead(BINTrackIsInstrumental, 1) == 1 & lead(style_name, 1) == "body" , 1, BINTrackIsInstrumental)) %>%
+  mutate(BINTrackIsInstrumental = ifelse(style_name == "body" & trimws(text) == "[Instrumental]", 1, 0)) %>%
   mutate(KEYTrackName = toupper(trimws(CATTrackName)))
          
       

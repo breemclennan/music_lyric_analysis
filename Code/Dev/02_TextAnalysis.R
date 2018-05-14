@@ -1,3 +1,10 @@
+# R Script: 02_TextAnalysis.R
+# Description: 
+# Begin analysis of dataset using text mining, NLP and machine learning techniques where appropriate
+# Author: Bree McLennan
+# Date: 14/05/2018
+#
+# ======================================================================================================================== #
 
 library(knitr)
 library(stringr)
@@ -26,24 +33,49 @@ wrk.01_DataPrep_LyricsWithSpotify <- read_feather(F("Data/Processed/wrk.01_DataP
 
 # ======================= MANUAL DATA EXPLORATION ============================================================= #
 
-# ==== PART A: Cleaning dataset with TM package, text pre-processing
-
-# ==== PART B: Natural Language Processinh (NLP) - Sentiment Polarity
-
-
-# ====== EXPERIMENTAL CODE ========== #
-
+# ==== PART A: Data Prep. Cleaning dataset with TM package, text pre-processing
 # Create a new dataframe with one row of lyrics for each track (instead of multiple rows per verse/chorus)
 wrk.02_TextAnalysis_00 <-  wrk.01_DataPrep_LyricsWithSpotify %>% 
   group_by(CATTrackName) %>% 
   mutate(TXTAllTrackLyrics = paste0(text, sep = "<br>", collapse = " ")) %>%
   mutate(NUMMaxLyricLines = max(as.numeric(NUMTrackLyricLineNumber)))
 
+# Create a dataset with one row per song. One variable & record to hold all lyrics for a song.
+wrk.02_TextAnalysis_01 <- wrk.02_TextAnalysis_00 %>%
+  filter(style_name == "heading 3")
+
+# lets now remove songs which were purely instrumental only
+wrk.02_TextAnalysis_02 <- wrk.02_TextAnalysis_01 %>%
+  filter(BINTrackIsInstrumental == 0)
+
+
+# ==== PART B: Natural Language Processinh (NLP) - Sentiment Polarity
+
+library(syuzhet)
+SongSentiment <- get_nrc_sentiment(wrk.02_TextAnalysis_02$TXTAllTrackLyrics)
+
+wrk.02_TextAnalysis_03 <- bind_cols(wrk.02_TextAnalysis_02, SongSentiment)
+#syuzhet pkg
+#Calls the NRC sentiment dictionary to calculate the presence of 
+#eight different emotions and their corresponding valence in a text file.
+
+barplot(
+  sort(colSums(prop.table(SongSentiment[, 1:8]))), 
+  #  horiz = TRUE, 
+  cex.names = 0.7, 
+  las = 1, 
+  main = "Emotions in Songs", xlab="Percentage"
+)
+# TODO: fix the BIN instrumental flag, and view the plot by album / song
+
+
+# ====== EXPERIMENTAL CODE ========== #
+
+
+
 #==== TODO: time duration is not available for all albums
 
-# We can use heading 3 for most analysis activities here.
-df <- wrk.02_TextAnalysis_00 %>%
-  filter(style_name == "heading 3") #%>%
+
   #mutate(CATMusicArtist = as.factor(CATMusicArtist )) %>%
   #mutate(CATMusicAlbum = as.factor(CATMusicAlbum )) %>%
  #mutate(key = as.factor(key)) #%>%

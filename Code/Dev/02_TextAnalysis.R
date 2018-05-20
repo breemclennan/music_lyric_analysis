@@ -22,18 +22,12 @@ library(purrr) #reduce and map functions
 # Define a function that computes file paths relative to where root .git folder is located
 F <- is_git_root$make_fix_file() 
 
-
-titles.format <- theme(plot.title = element_text(face="bold", size=13, color='grey50'),
-                       plot.subtitle = element_text(color='grey50'),
-                       axis.title = element_text(size=9, color='grey50'), 
-                       axis.text = element_text(size=9, color='grey50'),
-                       plot.margin = unit(c(0.3,0.3,0.3,0.3), "cm"))
-
 wrk.01_DataPrep_LyricsWithSpotify <- read_feather(F("Data/Processed/wrk.01_DataPrep_LyricsWithSpotify.feather"))
 
 # ======================= MANUAL DATA EXPLORATION ============================================================= #
 
 # ==== PART A: Data Prep. Cleaning dataset with TM package, text pre-processing
+
 # Create a new dataframe with one row of lyrics for each track (instead of multiple rows per verse/chorus)
 wrk.02_TextAnalysis_00 <-  wrk.01_DataPrep_LyricsWithSpotify %>% 
   group_by(CATTrackName) %>% 
@@ -46,13 +40,58 @@ wrk.02_TextAnalysis_01 <- wrk.02_TextAnalysis_00 %>%
 
 # lets now remove songs which were purely instrumental only
 wrk.02_TextAnalysis_02 <- wrk.02_TextAnalysis_01 %>%
-  filter(BINTrackIsInstrumental == 0)
+  filter(str_detect(TXTAllTrackLyrics, "Instrumental") == FALSE )
+
+#Summary
+glimpse(wrk.02_TextAnalysis_02)
+
+#Identify any specific/customisable words we we with to eliminate
+undesirable_words <- c("chorus", "lyrics", "verse")
+
+#Create lyric verse tokens
+lineToken <- wrk.02_TextAnalysis_02 %>%
+  ungroup() %>%
+  unnest_tokens(line, TXTAllTrackLyrics, token = stringr::str_split, pattern = '<br>') %>% #break the lyrics into verses
+  mutate(lineCount = row_number())
+
+#Create lyric word tokens and apply tidy text format
+wordToken <-  lineToken %>% 
+  unnest_tokens(word, line) %>%  #Break the lyrics into individual words
+  anti_join(stop_words) %>% #removing stop words
+  distinct() %>%
+  filter(!word %in% undesirable_words)
+  #mutate(wordCount = row_number())
+
+# DESCRIPTIVE STATS
+# Full word count for each song
+wrk.02_TextAnalysis_03_WordCount <- wordToken %>%
+  group_by(CATMusicArtist,CATMusicAlbum, CATTrackName) %>%
+  summarise(num_words = n()) %>%
+  arrange(desc(num_words)) 
+
+# Summary table for full word counts. This includes all words, non-distinct.
+library(ggplot2) #visualizations
+library(gridExtra) #viewing multiple plots together
+library(knitr) # for dynamic reporting
+library(kableExtra) # create a nicely formated HTML table
+library(formattable) # for the color_tile function
+
+wrk.02_TextAnalysis_03_WordCount %>%
+  ungroup(num_words, CATTrackName) %>%
+  mutate(num_words = color_bar("lightblue")(num_words)) %>%
+  mutate(CATTrackName = color_tile("lightpink","lightpink")(CATTrackName)) %>%
+  kable("html", escape = FALSE, align = "c", caption = "Songs With Highest Word Count") %>%
+  kable_styling(bootstrap_options = 
+                  c("striped", "condensed", "bordered"), 
+                full_width = FALSE)
+
 
 
 # ==== PART B: Natural Language Processinh (NLP) - Sentiment Polarity
 
 library(syuzhet)
 SongSentiment <- get_nrc_sentiment(wrk.02_TextAnalysis_02$TXTAllTrackLyrics)
+#SongSentimentValues <- get_nrc_values(wrk.02_TextAnalysis_02$TXTAllTrackLyrics)
 
 wrk.02_TextAnalysis_03 <- bind_cols(wrk.02_TextAnalysis_02, SongSentiment)
 #syuzhet pkg
@@ -66,7 +105,20 @@ barplot(
   las = 1, 
   main = "Emotions in Songs", xlab="Percentage"
 )
+
+#TODO - make this work!
+wrk.02_TextAnalysis_03 %>%
+ggplot(aes(sentiment, n, fill = sentiment)) +
+  geom_col() +
+  facet_wrap(year ~ song, scales = "free_x", labeller = label_both) +
+  theme_lyrics() +
+  theme(panel.grid.major.x = element_blank(),
+        axis.text.x = element_blank()) +
+  labs(x = NULL, y = NULL) +
+  ggtitle("NRC Sentiment Song Analysis") +
+  coord_flip()
 # TODO: fix the BIN instrumental flag, and view the plot by album / song
+
 
 
 # ====== EXPERIMENTAL CODE ========== #
@@ -80,32 +132,6 @@ barplot(
   #mutate(CATMusicAlbum = as.factor(CATMusicAlbum )) %>%
  #mutate(key = as.factor(key)) #%>%
   #mutate(duration_ms = minutes(duration_ms)) 
-
-
-# Summary table: What artists, albums and tracks?
-artists <- df %>% 
-  group_by(CATMusicArtist, CATMusicAlbum) %>% 
-  summarise(nbreSongs = n(), duration = seconds_to_period(sum(duration_ms)))
-kable(artists, format = 'markdown')
-
-# Songs by key
-#TODO SHOW BY ARTIST / TRACK
-df %>% filter(!is.na(key)) %>%
-  group_by(key) %>% 
-  summarise(n = n()) %>% 
-  arrange(n) %>%
-  mutate(key = reorder(key, -n)) %>%
-  ggplot(., aes(x=key, y=n)) +
-  geom_bar(stat = "identity", 
-           color='white',
-           fill='#FCCB85',
-           ) +
-  xlab('Keys') +
-  ylab('Number of Songs') +
-  labs(title='Songs per Key', subtitle='18 songs are NAs') +
-  titles.format
-  
-# Most songs are in D key
 
 
 

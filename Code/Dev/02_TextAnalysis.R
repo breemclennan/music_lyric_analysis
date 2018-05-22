@@ -76,6 +76,23 @@ library(knitr) # for dynamic reporting
 library(kableExtra) # create a nicely formated HTML table
 library(formattable) # for the color_tile function
 
+# Number of songs by artist
+wrk.02_TextAnalysis_03_SongPerArtist <- wrk.02_TextAnalysis_01 %>%
+  ungroup() %>%
+  mutate(BINSongIsInstrumental = as.factor(ifelse(str_detect(TXTAllTrackLyrics, "Instrumental") == TRUE, 1,0 ))) %>%
+  group_by(CATMusicArtist,CATMusicAlbum) %>%
+  add_tally() %>% #count the total number of rows in the by group assign to variable "n"
+  rename(NUMTotalSongsForArtist = n) %>% # RENAME PARAMETERS (NEW NAME = OLD NAME).
+  ungroup() %>%
+  group_by(CATMusicArtist,CATMusicAlbum) %>%
+  #Summarise will essentially wipe the above totals, TODO: engineer this better :)
+  summarise(NUMTotalInstrumentalSongs = sum(as.numeric(BINSongIsInstrumental))) %>%  
+  ungroup()
+
+   
+
+
+# Songs by the highest unique word count
 wrk.02_TextAnalysis_03_WordCount %>%
   ungroup(num_words, CATTrackName) %>%
   mutate(num_words = color_bar("lightblue")(num_words)) %>%

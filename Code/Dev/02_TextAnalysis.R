@@ -57,17 +57,103 @@ lineToken <- wrk.02_TextAnalysis_02 %>%
 #Create lyric word tokens and apply tidy text format
 wordToken <-  lineToken %>% 
   unnest_tokens(word, line) %>%  #Break the lyrics into individual words
-  anti_join(stop_words) %>% #removing stop words
-  distinct() %>%
-  filter(!word %in% undesirable_words)
+  #anti_join(stop_words) %>% #removing stop words
+  #distinct() %>%
+  filter(!word %in% undesirable_words) #removing custom configured stop words
   #mutate(wordCount = row_number())
 
 # DESCRIPTIVE STATS
-# Full word count for each song
+# Full word count for each song (non-distinct)
 wrk.02_TextAnalysis_03_WordCount <- wordToken %>%
   group_by(CATMusicArtist,CATMusicAlbum, CATTrackName) %>%
   summarise(num_words = n()) %>%
   arrange(desc(num_words)) 
+
+# Common words
+#overall (validation)
+wrk.02_TextAnalysis_03_CommonWordsAll <- wordToken %>%
+  count(word, sort = TRUE)
+# Most common words in each song
+wrk.02_TextAnalysis_03_CommonWordsSong <- wordToken %>%
+  anti_join(stop_words) %>% # remove stop words, allow us to see some more meaningful results
+  count(CATTrackName, word, sort = TRUE) %>%
+  ungroup()
+
+wrk.02_TextAnalysis_03_CommonWordsGrouped
+
+# Most common words in each album
+wrk.02_TextAnalysis_03_CommonWordsAlbum <- wordToken %>%
+  anti_join(stop_words) %>% # remove stop words, allow us to see some more meaningful results
+  count(CATMusicArtist, CATMusicAlbum, word, sort = TRUE) %>%
+  ungroup()
+
+# Find the TF-IDF within the albums
+# We expect the albums to differ in terms of subject/topic, content and sentiment, we therefore expect the frequency of words to differ 
+# between albums, We can use TF-IDF metric to calculate these differences.
+tf_idf <- wrk.02_TextAnalysis_03_CommonWordsAlbum %>%
+  bind_tf_idf(word, CATMusicArtist, n) %>%
+  arrange(desc(tf_idf))
+
+tf_idf
+
+# Examining the TF-IDF. By Albums as groups
+tf_idf %>%
+  #filter(str_detect(CATMusicArtist, "^sci\\.")) %>%
+  group_by(CATMusicArtist) %>%
+  top_n(10, tf_idf) %>%
+  ungroup() %>%
+  mutate(word = reorder(word, tf_idf)) %>%
+  ggplot(aes(word, tf_idf, fill = CATMusicArtist)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ CATMusicArtist, scales = "free") +
+  ylab("tf-idf") +
+  coord_flip()
+
+# Which albums are similar to each other in text content? We can explore this by finding
+# the pairwise correlation of word frequencies within each newsgroup, using the pairwise_cor()
+# function from the widyr package
+
+library(widyr)
+
+album_cors <- wrk.02_TextAnalysis_03_CommonWordsAlbum %>%
+  pairwise_cor(CATMusicArtist, word, n, sort = TRUE)
+
+album_cors
+
+#Lets now filter on stronger correlations with the albums and visualise in a network
+library(ggraph)
+library(igraph)
+set.seed(1234)
+
+album_cors %>%
+  filter(correlation > .4) %>%
+  graph_from_data_frame() %>%
+  ggraph(layout = "fr") +
+  geom_edge_link(aes(alpha = correlation, width = correlation)) +
+  geom_node_point(size = 6, color = "lightblue") +
+  geom_node_text(aes(label = name), repel = TRUE) +
+  theme_void()
+# It seems these albums don't correlate strongly! Maybe we can try at the song level?
+
+song_cors <- wrk.02_TextAnalysis_03_CommonWordsSong %>%
+  pairwise_cor(CATTrackName, word, n, sort = TRUE)
+
+song_cors
+
+set.seed(4321)
+
+song_cors %>%
+  filter(correlation > .4) %>%
+  graph_from_data_frame() %>%
+  ggraph(layout = "fr") +
+  geom_edge_link(aes(alpha = correlation, width = correlation)) +
+  geom_node_point(size = 6, color = "lightblue") +
+  geom_node_text(aes(label = name), repel = TRUE) +
+  theme_void()
+# Curious, Elton John's Mona Lisa and Led Zeppelin's Down by the Seaside have a connection with a correlation greater than 0.4.
+# Interesting that no other songs had a high enough correlation to be considered as significant.
+
+
 
 # Summary table for full word counts. This includes all words, non-distinct.
 library(ggplot2) #visualizations
@@ -80,18 +166,16 @@ library(formattable) # for the color_tile function
 wrk.02_TextAnalysis_03_SongPerArtist <- wrk.02_TextAnalysis_01 %>%
   ungroup() %>%
   mutate(BINSongIsInstrumental = as.factor(ifelse(str_detect(TXTAllTrackLyrics, "Instrumental") == TRUE, 1,0 ))) %>%
+  mutate(BINSongIsInstrumental = as.numeric(BINSongIsInstrumental)) %>%
   group_by(CATMusicArtist,CATMusicAlbum) %>%
   add_tally() %>% #count the total number of rows in the by group assign to variable "n"
   rename(NUMTotalSongsForArtist = n) %>% # RENAME PARAMETERS (NEW NAME = OLD NAME).
-  ungroup() %>%
-  group_by(CATMusicArtist,CATMusicAlbum) %>%
-  #Summarise will essentially wipe the above totals, TODO: engineer this better :)
-  summarise(NUMTotalInstrumentalSongs = sum(as.numeric(BINSongIsInstrumental))) %>%  
-  ungroup()
+  ungroup() 
+
+#instrumental songs
+instrumental <- filter(wrk.02_TextAnalysis_03_SongPerArtist, str_detect(TXTAllTrackLyrics, "Instrumental") == TRUE )
 
    
-
-
 # Songs by the highest unique word count
 wrk.02_TextAnalysis_03_WordCount %>%
   ungroup(num_words, CATTrackName) %>%
@@ -114,6 +198,8 @@ wrk.02_TextAnalysis_03 <- bind_cols(wrk.02_TextAnalysis_02, SongSentiment)
 #syuzhet pkg
 #Calls the NRC sentiment dictionary to calculate the presence of 
 #eight different emotions and their corresponding valence in a text file.
+
+
 
 barplot(
   sort(colSums(prop.table(SongSentiment[, 1:8]))), 

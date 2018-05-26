@@ -88,6 +88,12 @@ write_feather(raw.SpotifyArtistAlbumTrackData, F("Data/Raw/raw.SpotifyArtistAlbu
 # Read feather file if we've restarted sessions
 raw.SpotifyArtistAlbumTrackData <- read_feather(F("Data/Raw/raw.SpotifyArtistAlbumTrackData.feather"))
 
+# Check over the dataset
+glimpse(raw.SpotifyArtistAlbumTrackData)
+CheckSpotify <- select(raw.SpotifyArtistAlbumTrackData,album_name, track_name)
+checkSpotify_NotMatchingSource <- anti_join(CheckSpotify, wrk.01_Data_Prep, by ) #all spotify songs not matching our source data
+glimpse(select(checkSpotify_NotMatchingSource,album_name, track_name ))
+
 #======================================#
 # Left join our reference spotify data  onto our lyrics dataset
 #======================================#

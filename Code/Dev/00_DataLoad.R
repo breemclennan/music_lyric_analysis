@@ -109,7 +109,6 @@ raw.dsetnames <- list(raw.data01, raw.data02, raw.data03, raw.data04, raw.data05
 # Append all above raw datasets together
 raw.data <- rbindlist(raw.dsetnames)
 
-
 # Save Feather file from 
 write_feather(raw.data, F("Data/Raw/raw.AllMusicLyrics.feather"))
 

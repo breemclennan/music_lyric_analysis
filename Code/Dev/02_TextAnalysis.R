@@ -19,6 +19,30 @@ library(rprojroot)
 library(purrr) #reduce and map functions
 `%ni%` <- Negate(`%in%`)
 
+# Define some colour themese to use in visualisations
+my_colors <- c("#E69F00", "#56B4E9", "#009E73", "#CC79A7", "#D55E00", "#D65E00")
+
+#ggplot2 custom theme settings
+theme_lyrics <- function(aticks = element_blank(),
+                         pgminor = element_blank(),
+                         lt = element_blank(),
+                         lp = "none")
+{
+  theme(plot.title = element_text(hjust = 0.5), #Center the title
+        axis.ticks = aticks, #Set axis ticks to on or off
+        panel.grid.minor = pgminor, #Turn the minor grid lines on or off
+        legend.title = lt, #Turn the legend title on or off
+        legend.position = lp) #Turn the legend on or off
+}
+
+#Customize the text tables for consistency using HTML formatting
+my_kable_styling <- function(dat, caption) {
+  kable(dat, "html", escape = FALSE, caption = caption) %>%
+    kable_styling(bootstrap_options = c("striped", "condensed", "bordered"),
+                  full_width = FALSE)
+}
+
+
 # Define a function that computes file paths relative to where root .git folder is located
 F <- is_git_root$make_fix_file() 
 
@@ -86,6 +110,54 @@ wrk.02_TextAnalysis_03_CommonWordsAlbum <- wordToken %>%
   anti_join(stop_words) %>% # remove stop words, allow us to see some more meaningful results
   count(CATMusicArtist, CATMusicAlbum, word, sort = TRUE) %>%
   ungroup()
+
+
+# WORD CLOUDS - for each album
+library(wordcloud2)
+#==== DAFT PUNK
+albums_wordcloud_DaftPunk <- wrk.02_TextAnalysis_03_CommonWordsAlbum %>%
+as.data.frame(albums_wordcloud) %>%
+  filter(CATMusicArtist == "Daft Punk") %>%
+  select(word, n) 
+wordcloud2(albums_wordcloud_DaftPunk[1:89, ], size = .5) #wont render if rownum set to more than whats in the dataset
+
+#==== U2
+albums_wordcloud_U2 <- wrk.02_TextAnalysis_03_CommonWordsAlbum %>%
+  as.data.frame(albums_wordcloud) %>%
+  filter(CATMusicArtist == "U2") %>%
+  select(word, n) 
+wordcloud2(albums_wordcloud_U2[1:100, ], size = .5)
+
+#==== Elton John
+albums_wordcloud_Elton <- wrk.02_TextAnalysis_03_CommonWordsAlbum %>%
+  as.data.frame(albums_wordcloud) %>%
+  filter(CATMusicArtist == "Elton John") %>%
+  select(word, n) 
+wordcloud2(albums_wordcloud_Elton[1:100, ], size = .5)
+
+#==== Led Zeppelin
+albums_wordcloud_LedZep <- wrk.02_TextAnalysis_03_CommonWordsAlbum %>%
+  as.data.frame(albums_wordcloud) %>%
+  filter(CATMusicArtist == "Led Zeppelin") %>%
+  select(word, n) 
+wordcloud2(albums_wordcloud_LedZep[1:100, ], size = .5)
+
+#==== Killswitch Engage
+albums_wordcloud_KsE <- wrk.02_TextAnalysis_03_CommonWordsAlbum %>%
+  as.data.frame(albums_wordcloud) %>%
+  filter(CATMusicArtist == "Killswitch Engage") %>%
+  select(word, n) 
+wordcloud2(albums_wordcloud_KsE[1:100, ], size = .5)
+
+
+#==== Iron Maiden
+albums_wordcloud_IronMaiden <- wrk.02_TextAnalysis_03_CommonWordsAlbum %>%
+  as.data.frame(albums_wordcloud) %>%
+  filter(CATMusicArtist == "Iron Maiden") %>%
+  select(word, n) 
+wordcloud2(albums_wordcloud_IronMaiden[1:100, ], size = .5)
+
+
 
 # Find the TF-IDF within the albums
 # We expect the albums to differ in terms of subject/topic, content and sentiment, we therefore expect the frequency of words to differ 
@@ -189,38 +261,94 @@ wrk.02_TextAnalysis_03_WordCount %>%
 
 
 # ==== PART B: Natural Language Processinh (NLP) - Sentiment Polarity
-
-library(syuzhet)
-SongSentiment <- get_nrc_sentiment(wrk.02_TextAnalysis_02$TXTAllTrackLyrics)
-#SongSentimentValues <- get_nrc_values(wrk.02_TextAnalysis_02$TXTAllTrackLyrics)
-
-wrk.02_TextAnalysis_03 <- bind_cols(wrk.02_TextAnalysis_02, SongSentiment)
+#we can consider stemming/root words here, incase we want to explore matching words in lexicons
 #syuzhet pkg
 #Calls the NRC sentiment dictionary to calculate the presence of 
 #eight different emotions and their corresponding valence in a text file.
 
 
+library(syuzhet)
+SongSentiment <- get_nrc_sentiment(wrk.02_TextAnalysis_02$TXTAllTrackLyrics)
+#SongSentimentValues <- get_nrc_values(wrk.02_TextAnalysis_02$TXTAllTrackLyrics)
 
+wrk.02_TextAnalysis_03 <- bind_cols(wrk.02_TextAnalysis_02, SongSentiment) 
+
+wrk.02_TextAnalysis_03_nrcsentiment <- wrk.02_TextAnalysis_03 %>%
+  select(CATMusicArtist, CATMusicAlbum, CATTrackName, anger, anticipation, disgust,
+         fear, joy, sadness, surprise , trust ) 
+
+wrk.02_TextAnalysis_03_nrcsentiment_daftpunk <- wrk.02_TextAnalysis_03_nrcsentiment %>%
+  filter(CATMusicArtist == "Daft Punk")
+
+wrk.02_TextAnalysis_03_nrcsentiment_U2 <- wrk.02_TextAnalysis_03_nrcsentiment %>%
+  filter(CATMusicArtist == "U2")
+
+wrk.02_TextAnalysis_03_nrcsentiment_Elton <- wrk.02_TextAnalysis_03_nrcsentiment %>%
+  filter(CATMusicArtist == "Elton John")
+
+wrk.02_TextAnalysis_03_nrcsentiment_ledzep <- wrk.02_TextAnalysis_03_nrcsentiment %>%
+  filter(CATMusicArtist == "Led Zeppelin")
+
+wrk.02_TextAnalysis_03_nrcsentiment_KsE <- wrk.02_TextAnalysis_03_nrcsentiment %>%
+  filter(CATMusicArtist == "Killswitch Engage")
+
+wrk.02_TextAnalysis_03_nrcsentiment_IronMaiden <- wrk.02_TextAnalysis_03_nrcsentiment %>%
+  filter(CATMusicArtist == "Iron Maiden")
+
+
+#wrk.02_TextAnalysis_03_nrc_sentiment <- wrk.02_TextAnalysis_02 %>%
+#  inner_join(get_sentiments("nrc")) %>%
+#  filter(!sentiment %in% c("positive", "negative"))
+
+par(mfrow = c(3,2)) # 3 rows and 2 columns
 barplot(
-  sort(colSums(prop.table(SongSentiment[, 1:8]))), 
-  #  horiz = TRUE, 
-  cex.names = 0.7, 
+  sort(colSums(prop.table(wrk.02_TextAnalysis_03_nrcsentiment_daftpunk[, 4:11]))), 
+  horiz = TRUE, 
+  cex.names = .8, 
   las = 1, 
-  main = "Emotions in Songs", xlab="Percentage"
+  main = "Emotions in Daft Punk - Discovery", xlab="Percentage",
+  col = rainbow(8)
 )
-
-#TODO - make this work!
-wrk.02_TextAnalysis_03 %>%
-ggplot(aes(sentiment, n, fill = sentiment)) +
-  geom_col() +
-  facet_wrap(year ~ song, scales = "free_x", labeller = label_both) +
-  theme_lyrics() +
-  theme(panel.grid.major.x = element_blank(),
-        axis.text.x = element_blank()) +
-  labs(x = NULL, y = NULL) +
-  ggtitle("NRC Sentiment Song Analysis") +
-  coord_flip()
-# TODO: fix the BIN instrumental flag, and view the plot by album / song
+barplot(
+  sort(colSums(prop.table(wrk.02_TextAnalysis_03_nrcsentiment_U2[, 4:11]))), 
+  horiz = TRUE, 
+  cex.names = .8, 
+  las = 1, 
+  main = "Emotions in U2 - Joshua Tree", xlab="Percentage",
+  col = rainbow(8)
+)
+barplot(
+  sort(colSums(prop.table(wrk.02_TextAnalysis_03_nrcsentiment_Elton[, 4:11]))), 
+  horiz = TRUE, 
+  cex.names = .8, 
+  las = 1, 
+  main = "Emotions in Elton John - Honky Chateau", xlab="Percentage",
+  col = rainbow(8)
+)
+barplot(
+  sort(colSums(prop.table(wrk.02_TextAnalysis_03_nrcsentiment_ledzep[, 4:11]))), 
+  horiz = TRUE, 
+  cex.names = .8, 
+  las = 1, 
+  main = "Emotions in Led Zeppelin - Physical Graffiti", xlab="Percentage",
+  col = rainbow(8)
+)
+barplot(
+  sort(colSums(prop.table(wrk.02_TextAnalysis_03_nrcsentiment_KsE[, 4:11]))), 
+  horiz = TRUE, 
+  cex.names = .8, 
+  las = 1, 
+  main = "Emotions in Killswitch Engage - Alive or Just Breathing", xlab="Percentage",
+  col = rainbow(8)
+)
+barplot(
+  sort(colSums(prop.table(wrk.02_TextAnalysis_03_nrcsentiment_IronMaiden[, 4:11]))), 
+  horiz = TRUE, 
+  cex.names = .8, 
+  las = 1, 
+  main = "Emotions in Iron Maiden - Powerslave", xlab="Percentage",
+  col = rainbow(8)
+)
 
 
 

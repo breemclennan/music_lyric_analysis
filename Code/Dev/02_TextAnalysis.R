@@ -19,6 +19,11 @@ library(rprojroot)
 library(purrr) #reduce and map functions
 `%ni%` <- Negate(`%in%`)
 
+# Install songsim (online version)
+library(devtools)
+devtools::install_github("gsimchoni/songsim")
+library(songsim)
+
 # Define some colour themese to use in visualisations
 my_colors <- c("#E69F00", "#56B4E9", "#009E73", "#CC79A7", "#D55E00", "#D65E00")
 
@@ -353,7 +358,27 @@ barplot(
 
 
 # ====== EXPERIMENTAL CODE ========== #
+# ------- SONGSIM ... idea for later... zooropa as data art would be really cool...
+library(songsim)
+library(heatmaply)
+# lets test this with kashmir, and then with one more time
+SongSim_LedZepKashmir <- wrk.01_DataPrep_LyricsWithSpotify %>%
+  filter(CATMusicArtist == "Led Zeppelin" & CATTrackName == "Kashmir") %>%
+  filter(style_name == "body") %>%
+  select(text )   #CATTrackName NUMTrackLyricLineNumber
 
+
+fileConn <- file("SongSim_LedZepKashmir.txt")
+writeLines(SongSim_LedZepKashmir$text, fileConn)
+close(fileConn)
+
+#songsim(path = (F("SongSim_LedZepKashmir.txt")),interactiveMode = TRUE, colorfulMode = TRUE, mainTitle = "Led Zeppelin - Kashmir")
+resLedZepKashmir <- songsim(path = (F("/Data/Raw/SongSim_LedZepKashmir.txt")),interactiveMode = TRUE, singleColor = "blue", mainTitle = "Led Zeppelin - Kashmir")
+# We want to capture the repetition stats for the song, so we'll store it in a variable for now..
+str(resLedZepKashmir)
+# repetitiveness= two triangles (upper & lower) of the matrix square. Measure is mean (percentage, out of 100%)  of the 1's and 0's across both triangles
+resLedZepKashmir$songMat
+resLedZepKashmir$repetitiveness
 
 
 #==== TODO: time duration is not available for all albums

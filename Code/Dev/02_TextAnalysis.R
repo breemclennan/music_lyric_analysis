@@ -373,7 +373,7 @@ writeLines(SongSim_LedZepKashmir$text, fileConn)
 close(fileConn)
 
 #songsim(path = (F("SongSim_LedZepKashmir.txt")),interactiveMode = TRUE, colorfulMode = TRUE, mainTitle = "Led Zeppelin - Kashmir")
-resLedZepKashmir <- songsim(path = (F("/Data/Raw/SongSim_LedZepKashmir.txt")),interactiveMode = TRUE, singleColor = "blue", mainTitle = "Led Zeppelin - Kashmir")
+resLedZepKashmir <- songsim(path = (F("Data/Raw/SongSim_LedZepKashmir.txt")),interactiveMode = TRUE, singleColor = "blue", mainTitle = "Led Zeppelin - Kashmir")
 # We want to capture the repetition stats for the song, so we'll store it in a variable for now..
 str(resLedZepKashmir)
 # repetitiveness= two triangles (upper & lower) of the matrix square. Measure is mean (percentage, out of 100%)  of the 1's and 0's across both triangles

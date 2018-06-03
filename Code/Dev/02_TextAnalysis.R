@@ -437,12 +437,19 @@ pdf_file <- F("Data/Processed/SongSim_AllSongs.pdf")
 sapply(pdf_file, function(x)
   pdf_convert(x, format = "png", pages = NULL, filenames = NULL, dpi = 300, opw = "", upw = "", verbose = TRUE))
 
+# Combine the PNG files together to form one rendering
+# GO HERE: https://www.filesmerge.com/merge-images , set to 3 columns, PNG or JPG
+# THEN OPTIMISE OUTPUT FOR WEB: http://optimizilla.com/
+
+
+
 # read in and arrange the png files -- TODO - fix this bit
-filenames <- dir(path = F("Data/Processed/") ,pattern = "SongSim_AllSongs_")
-PNGList <- list()
-for(j in 1:60) PNGList[[j]] <- readPNG(filenames[j]) #might be looking at working dir...we moved the files
-layout(matrix(1:60,nr=20,byr=TRUE))
- for (j in 1:60) plot(PNGList[[j]])
+#library(png)
+#filenames <- dir(path = F("Data/Processed/"), pattern = "SongSim_AllSongs_", full.names = TRUE)
+#PNGList <- list()
+#for (j in 1:59) PNGList[[j]] <- readPNG(filenames[j]) #might be looking at working dir...we moved the files
+
+
 
 #===================
 

@@ -20,8 +20,8 @@ library(purrr) #reduce and map functions
 `%ni%` <- Negate(`%in%`)
 
 # Install songsim (online version)
-library(devtools)
-devtools::install_github("gsimchoni/songsim")
+#library(devtools)
+#devtools::install_github("gsimchoni/songsim")
 library(songsim)
 
 # Define some colour themese to use in visualisations
@@ -169,7 +169,50 @@ albums_wordcloud_IronMaiden <- wrk.02_TextAnalysis_03_CommonWordsAlbum %>%
   select(word, n) 
 wordcloud2(albums_wordcloud_IronMaiden[1:100, ], size = .5)
 
+#===== LEXICAL DENSITY
+# Let's observe the lexical diversity, or vocabulary, of each of the song lyrics.
+# Assumption: the more diverse the lyrics, the larger the vocabulary
+# Using a continuous dependent variable "word_count", as a function of the categorical independent variable, album.
+LexicalDensity_01 <- wordToken %>%
+  anti_join(stop_words) %>% 
+  group_by(CATMusicArtist, CATMusicAlbum, CATTrackName) %>%
+  mutate(CATArtistAlbumTrack = paste(CATMusicArtist, CATMusicAlbum, CATTrackName, sep = " - ")) %>%
+  mutate(CATArtistAlbum = paste(CATMusicArtist, CATMusicAlbum, sep = " - ")) %>%
+  mutate(word_count = n_distinct(word)) %>%
+  select(CATMusicArtist, CATMusicAlbum, CATTrackName, CATArtistAlbum, CATArtistAlbumTrack, word_count) %>%
+  distinct() %>% #Summarise to one record per song, distinct word count
+  ungroup()
 
+library(yarrr)
+#Lets draw the plot
+par(mar = c(5.1, 4.1, 4.1, 2.1)) # Set the margin on all sides to 2
+par(mfrow = c(1, 1))
+pirateplot(formula =  word_count ~ CATMusicArtist, #Formula
+           data = LexicalDensity_01, #Data frame
+           xlab = NULL, ylab = "Song Distinct Word Count", #Axis labels
+           main = "Lexical Diversity Per Artist & Album", #Plot title
+           pal = "basel", #Color scheme
+           point.o = .2, #Points
+           avg.line.o = 1, #Turn on the Average/Mean line
+           theme = 0, #Theme
+           point.pch = 16, #Point `pch` type
+           point.cex = 1.5, #Point size
+           jitter.val = .1, #Turn on jitter to see the songs better
+           cex.lab = 1, cex.names = .9) #Axis label size
+#dev.off()
+
+# TF IDF ===================================================================
+#TF is "term frequency". IDF is "inverse document frequency",
+# which attaches a lower weight for commonly used words and a higher weight for 
+# words that are not used much in a collection of text. When you combine TF and IDF,
+# a term's importance is adjusted for how rarely it is used. The assumption behind TF-IDF 
+# is that terms that appear more frequently in a document should be given a higher weight,
+# unless it also appears in many documents. The formula can be summarized below:
+# - Term Frequency (TF): Number of times a term occurs in a document
+# - Document Frequency (DF): Number of documents that contain each word
+# - Inverse Document Frequency (IDF) = 1/DF
+# - TF-IDF = TF * IDF
+#The IDF of any term is therefore a higher number for words that occur in fewer of the documents in the collection. 
 
 # Find the TF-IDF within the albums
 # We expect the albums to differ in terms of subject/topic, content and sentiment, we therefore expect the frequency of words to differ 
@@ -190,7 +233,7 @@ tf_idf %>%
   ggplot(aes(word, tf_idf, fill = CATMusicArtist)) +
   geom_col(show.legend = FALSE) +
   facet_wrap(~ CATMusicArtist, scales = "free") +
-  ylab("tf-idf") +
+  ylab("Term Frequency - Inverse Document Frequency (TF-IDF)") +
   coord_flip()
 
 # Which albums are similar to each other in text content? We can explore this by finding
@@ -273,12 +316,81 @@ wrk.02_TextAnalysis_03_WordCount %>%
 
 
 # ==== PART B: Natural Language Processinh (NLP) - Sentiment Polarity
+# Do we need to perform more Data Preparation?
+# It may be the case that you need a few more data preparation steps. Here are three techniques to consider before performing sentiment analysis:
+# Stemming: generally refers to removing suffixes from words to get the common origin
+# Lemmatization: reducing inflected (or sometimes derived) words to their word stem, base or root form
+#Word replacement: replace words with more frequently used synonyms
+#An advanced concept in sentiment analysis is that of synonym (semantically similar peer)
+#and hypernym (a common parent) replacement. These are words that are more frequently used than
+#the related word in the lyric, and actually do appear in a lexicon, thus giving a higher match percentage. 
+#There is not enough space in this tutorial to address additional data preparation, 
+#but it's definitely something to consider!
+#Challenge: do a little research on lexicons and how they are created. Is there already one that exists that is better suited to musical lyrics? If you're really interested, maybe consider what it would take to build your own lexicon. 
+#What is the difference between classifier-based sentiment analysis and lexicon-based sentiment analysis?
+#==================
 #we can consider stemming/root words here, incase we want to explore matching words in lexicons
 #syuzhet pkg
 #Calls the NRC sentiment dictionary to calculate the presence of 
 #eight different emotions and their corresponding valence in a text file.
 
+#METHOD 1: USING TIDY TEXT
+SongSentiment_TidyText_NRC <- wordToken %>%
+  anti_join(stop_words) %>% 
+  inner_join(get_sentiments("nrc")) %>%
+  filter(!sentiment %in% c("positive", "negative")) %>%
+  group_by(CATMusicArtist ,sentiment) %>%
+  count(word, CATMusicArtist, sort = TRUE) %>%
+  arrange(desc(n)) %>%
+  slice(seq_len(8)) %>% #consider top_n() from dplyr also
+  ungroup()
 
+
+#PLOT NRC SENTIMENT BY ARTST & ALBUM (ALL WORDS)
+par(mar = c(5.1, 4.1, 4.1, 2.1)) # Set the margin on all sides to 2
+par(mfrow = c(1, 1))
+SongSentiment_TidyText_NRC %>%
+  #Set `y = 1` to just plot one variable and use word as the label
+  ggplot(aes(word, 1, label = word, fill = sentiment )) +
+  #You want the words, not the points
+  geom_point(color = "transparent") +
+  #Make sure the labels don't overlap
+  geom_label_repel(force = 1,nudge_y = .5, nudge_x = .5,  
+                   direction = "both",
+                   box.padding = 0.04,
+                   segment.color = "transparent",
+                   size = 3) +
+  facet_grid(CATMusicArtist~sentiment) +
+  theme_lyrics() +
+  theme(axis.text.y = element_blank(), axis.text.x = element_blank(),
+        axis.title.x = element_text(size = 6),
+        panel.grid = element_blank(), panel.background = element_blank(),
+        panel.border = element_rect("lightgray", fill = NA),
+        strip.text.x = element_text(size = 9)) +
+  xlab(NULL) + ylab(NULL) +
+  ggtitle("NRC Sentiment by Artist & Album") +
+  coord_flip()
+
+#SongSentiment_TidyText_NRC
+wordToken %>%
+  anti_join(stop_words) %>% 
+  inner_join(get_sentiments("nrc")) %>%
+  filter(!sentiment %in% c("positive", "negative")) %>%
+  group_by(CATMusicArtist ,sentiment) %>%
+  summarise(word_count = n()) %>%
+  ungroup() %>%
+  mutate(sentiment = reorder(sentiment, word_count)) %>%
+  ggplot(aes(sentiment, word_count, fill = -word_count)) +
+  facet_wrap(~CATMusicArtist) +
+  geom_col() +
+  guides(fill = FALSE) +
+  theme_lyrics() +
+  #scale_color_manual(values=c("#000000","#fca002","#3dbf1c","#0347bc","#23c0ff","#c40e01","#609105","#a25ce8"))+
+  labs(x = "NRC Sentiment", y = "Word Count") +
+  ggtitle("NRC Sentiment by Artist & Album") +
+  coord_flip()
+
+#METHOD 2: USING SYUZHET
 library(syuzhet)
 SongSentiment <- get_nrc_sentiment(wrk.02_TextAnalysis_02$TXTAllTrackLyrics)
 #SongSentimentValues <- get_nrc_values(wrk.02_TextAnalysis_02$TXTAllTrackLyrics)
@@ -388,7 +500,13 @@ resLedZepKashmir$songMat
 resLedZepKashmir$repetitiveness
 
 
-#======= run this for all songs...
+#======= BUILD SONG SIMs FOR ALL SONGS IN DATASET (59 songs)
+# We can use this as an alternative to measuring lexical density (the number of unique words
+# divided by the total number of words - used as a measure for indication of word repeition).
+# General assumption: As lexical density increases, repetition ought to decrease.
+
+library(songsim)
+library(heatmaply)
 library(glue)
 SongSim_All_01 <- wrk.01_DataPrep_LyricsWithSpotify %>%
   filter(style_name == "body" & text != "[Instrumental]") %>%
@@ -442,7 +560,6 @@ sapply(pdf_file, function(x)
 # THEN OPTIMISE OUTPUT FOR WEB: http://optimizilla.com/
 
 
-
 # read in and arrange the png files -- TODO - fix this bit
 #library(png)
 #filenames <- dir(path = F("Data/Processed/"), pattern = "SongSim_AllSongs_", full.names = TRUE)
@@ -450,27 +567,43 @@ sapply(pdf_file, function(x)
 #for (j in 1:59) PNGList[[j]] <- readPNG(filenames[j]) #might be looking at working dir...we moved the files
 
 
-
-#===================
-
-## PART A: LYRICAL ANALYSIS
-# What do the songs say?
-wrk.02_TextAnalysis_03_CommonWordsSong
-
-
-#plot setup
-uniqueWords <- wrk.02_TextAnalysis_03_CommonWordsSong %>% 
-  select(CATTrackName, word) %>%
-  filter(!str_detect(word, '[0-9]')) %>% #or we could transmute digits to words...
-  group_by(CATTrackName, word) %>% 
-  filter(row_number(word) == 1) %>%
-  arrange(word)
-nbreUniqWords <- nrow(uniqueWords)
+# What is the repetition level for the songs?
+distinctSongList <- SongSim_All_01 %>%
+  group_by(CATArtistAlbumTrack) %>%
+  distinct(CATArtistAlbumTrack) %>%
+  ungroup()
+distinctSongList <- as.data.frame(distinctSongList)
 
 
-## BI GRAMS & TRI GRAMS
-nGram <- data_frame(text=paste(wrk.02_TextAnalysis_03_CommonWordsSong$word, collapse = ' '))
-nGramCleaned <- data_frame(text=paste(wrk.02_TextAnalysis_03_CommonWordsSong$word, collapse = ' '))
+#Unpack the songsim big list
+length(RenderSongSim)
+str(RenderSongSim[[1]])
+SongSim_Repetition <- RenderSongSim %>% map_dbl("repetitiveness")
+df <- as.data.frame(SongSim_Repetition)
+
+#Dataset with repetitiveness measure and the artist+album+track column
+Song_Repetition_DF <- data.frame(bind_cols(distinctSongList, df))
+Song_Repetition_DF <- Song_Repetition_DF %>%
+  mutate(SongSim_Repetition = as.numeric(SongSim_Repetition))
+  #%>%  mutate(CATMusicArtist = separate(CATArtistAlbumTrack, " - "))
+ #CATMusicAlbum, CATTrackName)
+  # TODO ADD BACK IN THE ARTIST AND ALBUM!
+
+
+library(yarrr)
+pirateplot(formula = SongSim_Repetition ~ ., 
+           data = Song_Repetition_DF, 
+           xlab = "All Songs", 
+           ylab = "Lyrical Repetitiveness (Song Sim)", 
+           main = "")
+
+
+# ============= BI grams and TRI grams
+
+# TODO: GET THIS WORKING FOR By_Group artist, album, song + word
+
+nGram <- data_frame(text=paste(wordToken$word, collapse = ' '))
+nGramCleaned <- data_frame(text=paste(wordToken2$word, collapse = ' '))
 
 biGrams <-  nGram %>% 
   unnest_tokens(ngram, text, token = "ngrams", n = 2) %>%
@@ -512,31 +645,6 @@ t.G <- triGrams %>%
 grid.arrange(b.G, t.G, ncol=2, widths=c(1,1.2))
 
 
-# SENTIMENTS FEELS...
-bing <- get_sentiments('bing')
-sentLyricsWord <- wordToken %>%
-  inner_join(bing)
-
-bing <- get_sentiments('bing')
-sentLyricsWord <- wordToken %>%
-  inner_join(bing)
-
-mostSentWord <- sentLyricsWord %>%
-  group_by(sentiment) %>%
-  count(word, sort = TRUE) %>%
-  top_n(20) %>%
-  mutate(n = ifelse(sentiment == 'negative', -n, n)) %>%
-  mutate(word = reorder(word, n)) %>%
-  arrange(desc(n))
-
-ggplot(mostSentWord, aes(word, n, fill = n > 0)) +
-  geom_bar(stat = "identity", show.legend = FALSE) +
-  labs(title='Most Frequent Positive And Negative Sentiment Words',
-       subtitle='In the 14 studio albums overall',
-       y='Frequency',
-       x=NULL) +
-  coord_flip() +
-  titles.format
 
 
 

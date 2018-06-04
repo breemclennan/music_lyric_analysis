@@ -23,6 +23,7 @@ library(RDCOMClient)
 library(stringr)
 library(rprojroot)
 library(purrr) #reduce and map functions
+library(qdap)
 `%ni%` <- Negate(`%in%`)
 
 # Define a function that computes file paths relative to where root .git folder is located
@@ -39,8 +40,20 @@ wrk.data <- setDT(read_feather(glue(F("Data/Raw/raw.AllMusicLyrics.feather"))))
 wrk.01_Data_Prep <- wrk.data %>%
   mutate(BINTrackIsInstrumental = ifelse(style_name == "body" & trimws(text) == "[Instrumental]", 1, 0)) %>%
   mutate(KEYTrackName = toupper(trimws(CATTrackName)))
-         
-      
+       
+# QDAP CHECKS  ==========================
+qview(wrk.01_Data_Prep)   
+check_text(wrk.01_Data_Prep$text, file=F("Data/Raw/QDAPCheckText_wrk.01_Data_Prep.txt")) 
+
+# Applying QDAP cleanup recommendations
+# Fix
+wrk.01_Data_Prep$text <- replace_number(wrk.01_Data_Prep$text, num.paste = TRUE, remove = FALSE)
+wrk.01_Data_Prep$text <- incomplete_replace(wrk.01_Data_Prep$text)
+wrk.01_Data_Prep$text <- comma_spacer(wrk.01_Data_Prep$text)
+wrk.01_Data_Prep$text <- clean(wrk.01_Data_Prep$text)
+wrk.01_Data_Prep$text <- scrubber(wrk.01_Data_Prep$text, fix.comma = TRUE, fix.space = TRUE)
+#  wrk.01_Data_Prep$text <- sentSplit(wrk.01_Data_Prep$text, "text")
+# check_spelling_interactive()
 
 #========== EXTRA DATA FROM SPOTIFY =======================
 #REF: https://beta.developer.spotify.com/dashboard/applications

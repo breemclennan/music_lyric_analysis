@@ -191,10 +191,18 @@ pirateplot(formula =  word_count ~ CATMusicArtist, #Formula
            data = LexicalDensity_01, #Data frame
            xlab = NULL, ylab = "Song Distinct Word Count", #Axis labels
            main = "Lexical Diversity Per Artist & Album", #Plot title
-           pal = "basel", #Color scheme
+           pal = "espresso", #Color scheme
+           back.col = gray(.98), # Add light gray background
+           gl.col = "gray", # Gray gridlines
+           gl.lwd = c(.75, 0),
+           inf.f.o = .6, # Turn up inf filling
+           inf.disp = "rect", # Wrap inference around bean
+           bean.b.o = .4, # Turn down bean borders
+           quant = c(.25, .75), # 25th and 75th quantiles
+           quant.col = "black", # Black quantile lines
            point.o = .2, #Points
            avg.line.o = 1, #Turn on the Average/Mean line
-           theme = 0, #Theme
+           theme = 2, #Theme
            point.pch = 16, #Point `pch` type
            point.cex = 1.5, #Point size
            jitter.val = .1, #Turn on jitter to see the songs better
@@ -584,18 +592,34 @@ df <- as.data.frame(SongSim_Repetition)
 #Dataset with repetitiveness measure and the artist+album+track column
 Song_Repetition_DF <- data.frame(bind_cols(distinctSongList, df))
 Song_Repetition_DF <- Song_Repetition_DF %>%
-  mutate(SongSim_Repetition = as.numeric(SongSim_Repetition))
-  #%>%  mutate(CATMusicArtist = separate(CATArtistAlbumTrack, " - "))
- #CATMusicAlbum, CATTrackName)
-  # TODO ADD BACK IN THE ARTIST AND ALBUM!
+  mutate(CATArtistAlbumTrack_split = CATArtistAlbumTrack) %>%
+  mutate(SongSim_Repetition = as.numeric(SongSim_Repetition)) %>%
+  separate(CATArtistAlbumTrack_split, c("CATMusicArtist", "CATMusicAlbum", "CATTrackName"), " - ", extra = "merge")
+
 
 
 library(yarrr)
-pirateplot(formula = SongSim_Repetition ~ ., 
-           data = Song_Repetition_DF, 
-           xlab = "All Songs", 
-           ylab = "Lyrical Repetitiveness (Song Sim)", 
-           main = "")
+pirateplot(formula =  SongSim_Repetition ~ CATMusicArtist, #Formula
+           data = Song_Repetition_DF, #Data frame
+           xlab = "All Songs", ylab = "Lyrical Repetitiveness (Song Sim)", #Axis labels
+           main = "SongSim Repetitiveness for each song by Artist", #Plot title
+           pal = "espresso", #Color scheme
+           back.col = gray(.98), # Add light gray background
+           gl.col = "gray", # Gray gridlines
+           gl.lwd = c(.75, 0),
+           inf.f.o = .6, # Turn up inf filling
+           inf.disp = "rect", # Wrap inference around bean
+           bean.b.o = .4, # Turn down bean borders
+           quant = c(.25, .75), # 25th and 75th quantiles
+           quant.col = "black", # Black quantile lines
+           point.o = .2, #Points
+           avg.line.o = 1, #Turn on the Average/Mean line
+           theme = 2, #Theme
+           point.pch = 16, #Point `pch` type
+           point.cex = 1.5, #Point size
+           jitter.val = .1, #Turn on jitter to see the songs better
+           cex.lab = 1, cex.names = .9) #Axis label size
+
 
 
 # ============= BI grams and TRI grams

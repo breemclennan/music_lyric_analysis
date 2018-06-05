@@ -104,7 +104,7 @@ raw.SpotifyArtistAlbumTrackData <- read_feather(F("Data/Raw/raw.SpotifyArtistAlb
 # Check over the dataset
 glimpse(raw.SpotifyArtistAlbumTrackData)
 CheckSpotify <- select(raw.SpotifyArtistAlbumTrackData,album_name, track_name)
-checkSpotify_NotMatchingSource <- anti_join(CheckSpotify, wrk.01_Data_Prep, by ) #all spotify songs not matching our source data
+checkSpotify_NotMatchingSource <- anti_join(CheckSpotify, wrk.01_Data_Prep, by = c("track_name" = "CATTrackName") ) #all spotify songs not matching our source data
 glimpse(select(checkSpotify_NotMatchingSource,album_name, track_name ))
 
 #======================================#

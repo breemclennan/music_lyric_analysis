@@ -17,6 +17,7 @@ library(tidytext)
 library(feather)
 library(rprojroot)
 library(purrr) #reduce and map functions
+library(qdap)
 `%ni%` <- Negate(`%in%`)
 
 # Install songsim (online version)
@@ -93,7 +94,9 @@ lineToken <- wrk.02_TextAnalysis_02 %>%
 #Create lyric word tokens and apply tidy text format
 wordToken <-  lineToken %>% 
   unnest_tokens(word, line) %>%  #Break the lyrics into individual words
-  #anti_join(stop_words) %>% #removing stop words
+  # QDAP Remove stopwords
+  #rm_stopwords(text$Text, Top200Words, strip = TRUE, separate = FALSE)
+  #anti_join(stop_words) %>% #TM/tidytext removing stop words
   #distinct() %>%
   filter(!word %in% undesirable_words) #removing custom configured stop words
   #mutate(wordCount = row_number())
@@ -104,6 +107,10 @@ wrk.02_TextAnalysis_03_WordCount <- wordToken %>%
   group_by(CATMusicArtist,CATMusicAlbum, CATTrackName) %>%
   summarise(num_words = n()) %>%
   arrange(desc(num_words)) 
+
+#TOTAL WORD COUNT: USING QDAP
+wrk.02_TextAnalysis_03_QDAPWordCount <- with(wrk.02_TextAnalysis_02, gantt_rep(CATMusicArtist, TXTAllTrackLyrics))
+plot(wrk.02_TextAnalysis_03_QDAPWordCount)
 
 # Common words
 #overall (validation)
@@ -116,6 +123,9 @@ wrk.02_TextAnalysis_03_CommonWordsSong <- wordToken %>%
   ungroup()
 
 wrk.02_TextAnalysis_03_CommonWordsGrouped
+
+
+
 
 # Most common words in each album
 wrk.02_TextAnalysis_03_CommonWordsAlbum <- wordToken %>%
@@ -620,41 +630,42 @@ pirateplot(formula =  SongSim_Repetition ~ CATMusicArtist, #Formula
            jitter.val = .1, #Turn on jitter to see the songs better
            cex.lab = 1, cex.names = .9) #Axis label size
 
+# === ven diagram
+VennDiagram <- with(wrk.02_TextAnalysis_02 , qdap::trans_venn(text, CATMusicArtist, legend.location = "topright"))
 
 
 # ============= BI grams and TRI grams
 
 # TODO: GET THIS WORKING FOR By_Group artist, album, song + word
+#wordToken <-  lineToken %>% 
+  BiGrams <- lineToken %>%
+  unnest_tokens(ngram, line, token = "ngrams", n = 2) %>%  #Break the lyrics into individual words
+  #anti_join(stop_words) %>% #removing stop words
+  #filter(!ngram %in% undesirable_words) %>%
+  #group_by(CATMusicArtist,CATMusicAlbum, CATTrackName) %>%
+  count(ngram, sort = TRUE) 
 
-nGram <- data_frame(text=paste(wordToken$word, collapse = ' '))
-nGramCleaned <- data_frame(text=paste(wordToken2$word, collapse = ' '))
+  TriGrams <- lineToken %>%
+  unnest_tokens(ngram, line, token = "ngrams", n = 3) %>%  #Break the lyrics into individual words
+  #anti_join(stop_words) %>% #removing stop words
+  filter(!ngram %in% undesirable_words) %>%
+  group_by(CATMusicArtist,CATMusicAlbum, CATTrackName) %>%
+  count(ngram, sort = TRUE) 
 
-biGrams <-  nGram %>% 
-  unnest_tokens(ngram, text, token = "ngrams", n = 2) %>%
-  count(ngram, sort = TRUE)
-
-biGramsCleaned <-  nGramCleaned %>% 
-  unnest_tokens(ngram, text, token = "ngrams", n = 2) %>%
-  count(ngram, sort = TRUE)
-
-triGrams <-  nGram %>% 
-  unnest_tokens(ngram, text, token = "ngrams", n = 3) %>%
-  count(ngram, sort = TRUE)
-
-b.G <- biGrams %>%
+b.G <- BiGrams %>%
   mutate(ngram = reorder(ngram, n)) %>%
-  slice(1:20) %>%
-  ggplot(., aes(x=ngram, y=n)) + 
+  slice(1:15) %>%
+  ggplot(., aes(x = ngram, y = n)) + 
   geom_bar(stat = "identity", 
-           color='white',
-           fill='#FCCB85') + 
+           color = 'white',
+           fill = '#FCCB85') + 
+  #facet_wrap(~as.factor(CATMusicArtist)) +
   xlab('bi-grams') +
-  #       ylab('Number of Press Clippings') +
   coord_flip() +
-  labs(title='Most Frequent bi-Grams') +
+  labs(title = 'Most Frequent bi-Grams') +
   titles.format
 
-t.G <- triGrams %>%
+t.G <- TriGrams %>%
   mutate(ngram = reorder(ngram, n)) %>%
   slice(1:20) %>%
   ggplot(., aes(x=ngram, y=n)) + 
@@ -662,7 +673,6 @@ t.G <- triGrams %>%
            color='white',
            fill='#FCCB85') + 
   xlab('tri-grams') +
-  #       ylab('Number of Press Clippings') +
   coord_flip() +
   labs(title='Most Frequent tri-Grams') +
   titles.format

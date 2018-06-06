@@ -6,6 +6,7 @@
 #
 # ======================================================================================================================== #
 
+library(dplyr)
 library(knitr)
 library(stringr)
 library(lubridate)
@@ -642,8 +643,9 @@ VennDiagram <- with(wrk.02_TextAnalysis_02 , qdap::trans_venn(text, CATMusicArti
   unnest_tokens(ngram, line, token = "ngrams", n = 2) %>%  #Break the lyrics into individual words
   #anti_join(stop_words) %>% #removing stop words
   #filter(!ngram %in% undesirable_words) %>%
-  #group_by(CATMusicArtist,CATMusicAlbum, CATTrackName) %>%
-  count(ngram, sort = TRUE) 
+  group_by(CATMusicArtist,CATMusicAlbum, CATTrackName) %>%
+  dplyr::count(ngram, sort = TRUE) %>%
+  ungroup()
 
   TriGrams <- lineToken %>%
   unnest_tokens(ngram, line, token = "ngrams", n = 3) %>%  #Break the lyrics into individual words
@@ -652,33 +654,35 @@ VennDiagram <- with(wrk.02_TextAnalysis_02 , qdap::trans_venn(text, CATMusicArti
   group_by(CATMusicArtist,CATMusicAlbum, CATTrackName) %>%
   count(ngram, sort = TRUE) 
 
+library(ggplot2)
 b.G <- BiGrams %>%
+  group_by(CATMusicArtist) %>%
   mutate(ngram = reorder(ngram, n)) %>%
-  slice(1:15) %>%
-  ggplot(., aes(x = ngram, y = n)) + 
-  geom_bar(stat = "identity", 
-           color = 'white',
-           fill = '#FCCB85') + 
-  #facet_wrap(~as.factor(CATMusicArtist)) +
-  xlab('bi-grams') +
-  coord_flip() +
-  labs(title = 'Most Frequent bi-Grams') +
-  titles.format
+  slice(1:10) %>%
+  ungroup() %>%
+  ggplot(aes(ngram, n, fill = CATMusicArtist)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ CATMusicArtist, scales = "free") +
+  ylab("Most Frequent bi-Grams") +
+  xlab('Bi-grams') +
+  coord_flip() 
+  
+
+b.G 
 
 t.G <- TriGrams %>%
+  group_by(CATMusicArtist) %>%
   mutate(ngram = reorder(ngram, n)) %>%
-  slice(1:20) %>%
-  ggplot(., aes(x=ngram, y=n)) + 
-  geom_bar(stat = "identity", 
-           color='white',
-           fill='#FCCB85') + 
-  xlab('tri-grams') +
-  coord_flip() +
-  labs(title='Most Frequent tri-Grams') +
-  titles.format
-grid.arrange(b.G, t.G, ncol=2, widths=c(1,1.2))
+  slice(1:10) %>%
+  ungroup() %>%
+  ggplot(aes(ngram, n, fill = CATMusicArtist)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ CATMusicArtist, scales = "free") +
+  ylab("Most Frequent Tri-Grams") +
+  xlab('Tri-grams') +
+  coord_flip() 
 
-
+t.G 
 
 
 

@@ -110,8 +110,19 @@ wrk.02_TextAnalysis_03_WordCount <- wordToken %>%
   arrange(desc(num_words)) 
 
 #TOTAL WORD COUNT: USING QDAP
-wrk.02_TextAnalysis_03_QDAPWordCount <- with(wrk.02_TextAnalysis_02, gantt_rep(CATMusicArtist, TXTAllTrackLyrics))
-plot(wrk.02_TextAnalysis_03_QDAPWordCount)
+wrk.02_TextAnalysis_03_QDAPWordCount <- with(wrk.02_TextAnalysis_02, qdap::gantt_rep(rm.var = CATMusicArtist, text.var = TXTAllTrackLyrics, grouping.var = CATTrackName ))
+#gantt_wrap(plot(wrk.02_TextAnalysis_03_QDAPWordCount))
+gantt_wrap(wrk.02_TextAnalysis_03_QDAPWordCount,
+           plot.var = "CATMusicArtist", fill.var = "CATTrackName",
+           border.color = "black",
+           legend.position = "bottom",
+           major.line.freq = 250,
+           ncol = 2,
+           size = 7,
+           border.size = 4,
+           border.width = .4,
+           title = "Total word count for each artist & album") 
+
 
 # Common words
 #overall (validation)
@@ -123,9 +134,7 @@ wrk.02_TextAnalysis_03_CommonWordsSong <- wordToken %>%
   count(CATTrackName, word, sort = TRUE) %>%
   ungroup()
 
-wrk.02_TextAnalysis_03_CommonWordsGrouped
-
-
+wrk.02_TextAnalysis_03_CommonWordsSong
 
 
 # Most common words in each album
@@ -142,7 +151,7 @@ albums_wordcloud_DaftPunk <- wrk.02_TextAnalysis_03_CommonWordsAlbum %>%
 as.data.frame(albums_wordcloud) %>%
   filter(CATMusicArtist == "Daft Punk") %>%
   select(word, n) 
-wordcloud2(albums_wordcloud_DaftPunk[1:89, ], size = .5) #wont render if rownum set to more than whats in the dataset
+wordcloud2(albums_wordcloud_DaftPunk[1:88, ], size = .5) #wont render if rownum set to more than whats in the dataset
 
 #==== U2
 albums_wordcloud_U2 <- wrk.02_TextAnalysis_03_CommonWordsAlbum %>%
@@ -321,13 +330,19 @@ wrk.02_TextAnalysis_03_SongPerArtist <- wrk.02_TextAnalysis_01 %>%
 #instrumental songs
 instrumental <- filter(wrk.02_TextAnalysis_03_SongPerArtist, str_detect(TXTAllTrackLyrics, "Instrumental") == TRUE )
 
+instrumental %>%
+  select(CATMusicArtist, CATMusicAlbum, CATTrackName) %>%
+  kable("html", escape = FALSE, align = "c", caption = "Instrumental Songs") %>%
+  kable_styling(bootstrap_options = 
+                  c("striped", "condensed", "bordered"), full_width = FALSE)
+
    
 # Songs by the highest unique word count
 wrk.02_TextAnalysis_03_WordCount %>%
   ungroup(num_words, CATTrackName) %>%
   mutate(num_words = color_bar("lightblue")(num_words)) %>%
   mutate(CATTrackName = color_tile("lightpink","lightpink")(CATTrackName)) %>%
-  kable("html", escape = FALSE, align = "c", caption = "Songs With Highest Word Count") %>%
+  kable("html", escape = FALSE, align = "c", caption = "Songs With Highest Total Word Count") %>%
   kable_styling(bootstrap_options = 
                   c("striped", "condensed", "bordered"), 
                 full_width = FALSE)
@@ -569,7 +584,7 @@ dev.off()
 
 # Convert pdf pages to png
 library(pdftools)
-#This will save the PNGs to the work dir
+#This will save the PNGs to the work dir, will need to manually move these to correct dir.
 pdf_file <- F("Data/Processed/SongSim_AllSongs.pdf")
 sapply(pdf_file, function(x)
   pdf_convert(x, format = "png", pages = NULL, filenames = NULL, dpi = 300, opw = "", upw = "", verbose = TRUE))
@@ -657,10 +672,11 @@ VennDiagram <- with(wrk.02_TextAnalysis_02 , qdap::trans_venn(text, CATMusicArti
 library(ggplot2)
 b.G <- BiGrams %>%
   group_by(CATMusicArtist) %>%
-  mutate(ngram = reorder(ngram, n)) %>%
+  mutate(ngram = reorder(ngram, n, sum)) %>%
   slice(1:10) %>%
   ungroup() %>%
-  ggplot(aes(ngram, n, fill = CATMusicArtist)) +
+  #to reorder the x axis by sum of n, add in reorder() to aes(x= ..)
+  ggplot(aes(x = reorder(ngram, n, sum), n, fill = CATMusicArtist)) +
   geom_col(show.legend = FALSE) +
   facet_wrap(~ CATMusicArtist, scales = "free") +
   ylab("Most Frequent bi-Grams") +
@@ -672,10 +688,11 @@ b.G
 
 t.G <- TriGrams %>%
   group_by(CATMusicArtist) %>%
-  mutate(ngram = reorder(ngram, n)) %>%
+  mutate(ngram = reorder(ngram, n, sum)) %>%
   slice(1:10) %>%
   ungroup() %>%
-  ggplot(aes(ngram, n, fill = CATMusicArtist)) +
+  #to reorder the x axis by sum of n, add in reorder() to aes(x= ..)
+  ggplot(aes(reorder(ngram, n, sum), n, fill = CATMusicArtist)) +
   geom_col(show.legend = FALSE) +
   facet_wrap(~ CATMusicArtist, scales = "free") +
   ylab("Most Frequent Tri-Grams") +
@@ -683,6 +700,9 @@ t.G <- TriGrams %>%
   coord_flip() 
 
 t.G 
+
+
+#======= TIDY TEXT STM TOPIC MODELLING ============================
 
 
 

@@ -704,6 +704,162 @@ t.G
 
 #======= TIDY TEXT STM TOPIC MODELLING ============================
 
+tidy_MusicLyrics <- lineToken %>%
+  unnest_tokens(word, text) %>%
+  anti_join(stop_words) %>%
+
+  #filter(word != "")
+
+tidy_MusicLyrics %>% #check the word list and identify any further words to filter out above.
+  count(word, sort = TRUE)
+
+# What are the highest tf-idf words across these 6 music albums? The td-idf statistic identifies words that are
+# important to a document in a collection of documents [in our case, Music Albums]. We'll see which words are important
+# in one music album, compared to the others.
+# how important is this word/song lyric to this document/music track & album, compared to other words in the collection of albums?
+
+library(drlib)
+
+MusicLyrics_tf_idf <- tidy_MusicLyrics %>%
+  count(CATMusicArtist, word, sort = TRUE) %>%
+  bind_tf_idf(word, CATMusicArtist, n) %>%
+  arrange(-tf_idf) %>%
+  group_by(CATMusicArtist) %>%
+  top_n(10) %>% #the top 10 highest td-idf words
+  ungroup()
+
+MusicLyrics_tf_idf %>%
+  mutate(word = reorder(word, tf_idf)) %>%
+  ggplot(aes(word, tf_idf, fill = CATMusicArtist)) +
+  geom_col(alpha = 0.8, show.legend = FALSE) +
+  facet_wrap(~ CATMusicArtist, scales = "free", ncol = 3) +
+  #scale_x_reordered() +
+  coord_flip() +
+  theme(strip.text=element_text(size=11)) +
+  labs(x = NULL, y = "tf-idf",
+       title = "Highest tf-idf words in collection of Music Albums",
+       subtitle = "Individual songs focus on different themes and narrative elements")
+
+#We see lots of familiar lyric words here.
+#as well as specific narrative elements for individual songs, like faster-harder-stronger,
+# rocket, minutes-midnight, numbered-days, kashmir, red-hill-mining-town.
+#🐦 Exploring tf-idf can be helpful before training topic models.
+
+
+# TOPIC MODEL (Structured Topic Model, STM)
+# inspiration reference: https://juliasilge.com/blog/sherlock-holmes-stm/
+
+#The stm() function take as its input a document-term matrix,
+#either as a sparse matrix or a dfm from quanteda.
+
+library(quanteda)
+library(stm)
+
+#pre-process the text. This involves removing stop words (common words as well as user specified stop words), stemming words (to remove suffixes), and other basic steps to make the text ready for processing.
+tidy_stemming_MusicLyrics <- textProcessor(tidy_MusicLyrics$word,meta= tidy_MusicLyrics, customstopwords = undesirable_words,
+                                           stem = TRUE)
+#prep the documents. In this step, I remove words that appear in less than 1 document, as well as words that appear in more than 60 articles. This helps remove some noise.
+out <- prepDocuments(tidy_stemming_MusicLyrics$documents, tidy_stemming_MusicLyrics$vocab, tidy_stemming_MusicLyrics$meta,
+                     lower.thresh = 1,upper.thresh = 60)
+
+MusicLyrics_dfm <- tidy_MusicLyrics %>%
+  count(CATMusicArtist, word, sort = TRUE) %>%
+  cast_dfm(CATMusicArtist, word, n)
+
+MusicLyrics_sparse <- tidy_MusicLyrics %>%
+  count(CATMusicArtist, word, sort = TRUE) %>%
+  cast_sparse(CATMusicArtist, word, n)
+
+#You could use either of these objects (sherlock_dfm or sherlock_sparse)
+# as the input to stm(). For this analysis we will use the quanteda dfm object.
+
+#======================================================== >>
+
+# We need to select the number of topic "K" to train the model with
+# the stm includes lots of functions and support for choosing an appropriate
+#number of topics for the model.
+#Reference: http://thomaselliott.me/pdfs/earl/topic_modeling.html
+
+#Next step is the processing workhorse. 
+# This actually does the topic modeling. 
+#First, we can run stm with init.type=“Spectral” and K=0 
+# to have the algorithm calculate the appropriate number of topics itself.
+#This does not mean the number of topics it finds is the true number of topics, 
+#but it is a good place to start.
+
+#Spectral initialization uses a decomposition of the VxV word co-occurence matrix
+#to identify “anchor” words - words that belong to only one topic and therefore identify that topic.
+#The topic loadings of other words are then calculated based on these anchor words. 
+#This processes is deterministic, so that the same values are always arrived at with the same VxV matrix. 
+#The problem is that this process assumes that the VxV matrix is generated from the population of documents
+#(or, put another way, assumes it is generated from an infinite number of documents). 
+#Thus, the process does not behave well with infrequent words. The solution to this is to remove infrequent words,
+#though one should still be careful if you don’t have a lot of documents.
+#My guess is that I should use Spectral, but make sure it is robust to a series of LDA models (meaning that Spectral produces results as good as or better than LDA models).
+#I also suspect that I don’t have enough documents to trust the number of models to use.
+
+STM_topic_model <- stm(MusicLyrics_dfm, K = 0, 
+                       seed=12345,
+                       verbose = FALSE, init.type = "Spectral")
+
+#The above analysis identifies 32 topics, below are common words for each of these topics:
+labelTopics(STM_topic_model)
+
+#Below graphs how common each topic is:
+plot.STM(STM_topic_model,type="summary", xlim=c(0,0.1))
+
+#Calculating semantic coherance & exclusivity scored, find the harmonic mean.
+
+#plot exclusivity vs semantic coherence
+topicQuality(STM_topic_model, documents = out$documents)
+#======================================================== <<
+
+STM_topic_model <- stm(MusicLyrics_dfm, K = 6, 
+                       seed=12345,
+                       verbose = FALSE, init.type = "Spectral")
+
+td_BetaMatrix <- tidy(STM_topic_model)
+
+td_BetaMatrix %>%
+  group_by(topic) %>%
+  top_n(10, beta) %>%
+  ungroup() %>%
+  mutate(topic = paste0("Topic ", topic),
+         term = reorder(term, beta)) %>%
+  ggplot(aes(term, beta, fill = as.factor(topic))) +
+  geom_col(alpha = 0.8, show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free_y") +
+  coord_flip() +
+  #scale_x_reordered() +
+  labs(x = NULL, y = expression(beta),
+       title = "Highest word probabilities for each topic",
+       subtitle = "Different words are associated with different topics")
+
+#Now let’s look at another kind of probability we get as output from topic modeling, 
+# the probability that each document is generated from each topic.
+td_GammaMatrix <- tidy(STM_topic_model, matrix = "gamma",                    
+                 document_names = rownames(MusicLyrics_dfm))
+
+ggplot(td_GammaMatrix, aes(gamma, fill = as.factor(topic))) +
+  geom_histogram(alpha = 0.8, show.legend = FALSE) +
+  facet_wrap(~ topic, ncol = 3) +
+  labs(title = "Distribution of document probabilities for each topic",
+       subtitle = "Each topic is associated with exactly 1 story",
+       y = "Number of stories", x = expression(gamma))
+
+#In this case, each short story is strongly associated with a single topic.
+#Topic modeling doesn’t always work out this way,
+#but I built a model here with a small number of documents (only 6) 
+#and a relatively large number of topics compared to the number of documents.
+#In any case, this is how we interpret these gamma probabilities; they tell us which topics are coming from which documents.
+
+# We can see some interesting things; there are shifts through the collection
+# as topic 3 stories come at the beginning and topic 5 stories come at the end. 
+#Topic 5 focuses on words that sound like spooky mysteries happening at night,
+#in houses with doors, and events that you see or hear, topic 1 is about lords, 
+#ladies, and wives, and topic 2 is about… GEESE. You can use each tab in the app 
+#to explore the topic modeling results in different ways.
+
 
 
 # ======================================================================================================================== #

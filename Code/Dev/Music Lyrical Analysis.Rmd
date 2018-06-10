@@ -1,30 +1,1203 @@
 ---
-title: "Music Lyrical Analysis"
-author: "Bree McLennan"
-date: "14 May 2018"
-output: html_document
+title: "Music Lyrical Analysis. Unpacking musical preferences with R"
+author: "Bree McLennan (www.breemclennan.com)"
+date: "10 June 2018"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    theme: cerulean
+    highlight: haddock
+    df_print: paged
+    self_contained: yes
+    fig_caption: true
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r global_options, include=FALSE}
+## insert libraries here
+library(dplyr)
+library(knitr) # for dynamic reporting
+library(stringr)
+library(lubridate)
+library(ggrepel)
+library(wordcloud)
+library(gridExtra) #viewing multiple plots together
+library(tidyverse)
+library(tidytext)
+library(feather)
+library(glue)
+library(rprojroot)
+library(purrr) #reduce and map functions
+library(qdap)
+library(ggplot2) #visualizations
+library(gridExtra) 
+library(knitr) 
+library(kableExtra) # create a nicely formated HTML table
+library(formattable) # for the color_tile function
+
+#if (!require('RWordPress')) { #required for WordPress publishing
+#  devtools::install_github(c("duncantl/XMLRPC", "duncantl/RWordPress"))
+#}
+library(RWordPress)
+
+########################################
+options(scipen = 10000)
+options(knitr.table.format = "html") 
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+
+
 ```
 
-## R Markdown
+```{r data_setup}
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+`%ni%` <- Negate(`%in%`)
+# Define a function that computes file paths relative to where root .git folder is located
+F <- is_git_root$make_fix_file() 
+# Example usage: F("Data/Raw") , F("Data/Processed")
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+#Load images
+image01_path <- F("Docs/ExploringMusicPart1.jpg")
+image02_path <- F("Docs/DataConsiderations_LyricSheets_01.jpg")
+image03_path <- F("Docs/DataConsiderations_LyricSheets_02.jpg")
+image04_path <- F("Docs/Exploration_AlbumWordCountGantt.jpeg")
 
-```{r cars}
-summary(cars)
+# Read in ready made source datasets
+# SPOTIFY DATA
+raw.SpotifyArtistAlbumTrackData <- read_feather(F("Data/Raw/raw.SpotifyArtistAlbumTrackData.feather"))
+
+#-----------------------------------
+# Pre Spotify Merge Data
+wrk.data <- read_feather(glue(F("Data/Raw/raw.AllMusicLyrics.feather")))
+wrk.01_Data_Prep <- wrk.data %>%
+  mutate(BINTrackIsInstrumental = ifelse(style_name == "body" & trimws(text) == "[Instrumental]", 1, 0)) %>%
+  mutate(KEYTrackName = toupper(trimws(CATTrackName)))
+       
+# QDAP CHECKS  ==========================
+qview(wrk.01_Data_Prep)   
+check_text(wrk.01_Data_Prep$text, file=F("Data/Raw/QDAPCheckText_wrk.01_Data_Prep.txt")) 
+
+# Applying QDAP cleanup recommendations
+wrk.01_Data_Prep$text <- replace_number(wrk.01_Data_Prep$text, num.paste = TRUE, remove = FALSE)
+wrk.01_Data_Prep$text <- incomplete_replace(wrk.01_Data_Prep$text)
+wrk.01_Data_Prep$text <- comma_spacer(wrk.01_Data_Prep$text)
+wrk.01_Data_Prep$text <- clean(wrk.01_Data_Prep$text)
+wrk.01_Data_Prep$text <- scrubber(wrk.01_Data_Prep$text, fix.comma = TRUE, fix.space = TRUE)
+
+
+# Read in main text analysis dataset
+wrk.01_DataPrep_LyricsWithSpotify <- read_feather(F("Data/Processed/wrk.01_DataPrep_LyricsWithSpotify.feather"))
+
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r "CoverImage", echo=FALSE, out.width = "75%"}
+# Render cover picture
+include_graphics(image01_path)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+&nbsp;
+
+## Introduction, influences and inspirations
+I have loved music since the day I was created. I love to be surrounded by glorious sounds and music I can really connect with. I’m by no means a musician or a sound engineer, I’m just a simple lover and enthusiast of listening to (and sometimes singing along with) music.
+
+My family greatly influenced this musical enthusiasm. I grew up in a family full of music listening enthusiasts and “ninja singers” (people who sing when they think no one is around or can hear them!). My Dad influenced me with his eclectic collection of classic rock and famous mainstream songwriters from the 60’s through to the 80’s. From my Dad, I learned very early on to appreciate the crystal-clear sound vinyl records offer as well as quality stereo equipment. My Mum influenced me with her regular listening to radio stations, in particular Gold 104 FM (Melbourne Australia) and random sing-alongs in the car. My brother influenced me with his electrical engineering talents. I distinctly remember as a young kid the day he created his first car-boot boom box. Thundering rumbles of finely tuned bass could be heard from 3 blocks away in tranquil suburbia, and of course it was 90’s techno pop, electronica and occasionally Jamiroquai! 
+
+So how did all this intriguing musical enthusiasm influence me?
+
+I was always drawn to classic and hard rock. I’ve always been fascinated with the interaction of sound compositions and poetic lyrical prose. Being an athlete since I was 9, I recognised early on how sounds and lyrics could influence my performances. There’s music to psych you up or calm you down, and rhymes to help you stay in time! 
+
+I discovered my fan-girl love for Irish rock group U2 when I was 14. It was their album “All That You Can’t Leave Behind” which got my attention. I then did what any obsessed fan-girl would do. I researched everything humanly possible about their music, and in addition to knowing every lyric to every song U2 ever wrote, I consequently ended up learning a great deal about many musical-related and life-experience topics. Things like the guitars and complex sound effects The Edge uses, Bono’s public speaking, song writing talents and stage presence, Larry’s masterful methods of how to stay out of the public spotlight while protecting his band, and Adam’s talents for creative collaboration and sophisticated, artistic conversation.
+
+As the years moved on, I began to open up and diversify my music collection. I have my husband to thank in part for this, introducing me to heavy metal and modern electronic genres. These days, my music interest is eclectic. In any single day I enjoy listening to anything between Eminem and Enya, Rammstein to Bobby McFerrin, Tibetan Buddhist Monk chanting to Dragonforce Through the Fire and the Flames. Yes, I’m also a huge fan of the Audiosurf game series, and Guitar Hero!
+
+&nbsp;
+
+## The data of music: What’s this analysis about? What's the purpose and objective?
+
+There’s not many days that go by where I’m not listening to music. I spend hours every day working away while listening to music, many hours creating an inadvertent fashion trend with my headphones and many hours with my thoughts randomly jumping in with playful musical commentary.
+
+More recently, this thought pattern commentary has been circulating in my head:
+
+  *	“This is such an eclectic playlist, **how do you make sense** of such a diverse collection of music?”
+  *	“How on earth are these pieces of music even **related or connected?**” “Yes Joshua Tree, I’m referring to you, I still haven’t found what I’m looking for and its not Bullet the Blue Sky!”
+  *	“What makes this song **unique, special, similar and different** to another song in your playlist…surely Led Zeppelin’s Kashmir is some kind of random outlier?”
+  *	“Does this album actually **tell a story** or have a **meaning**?”
+  *	“Hey Bree, you are a **data scientist** by trade. **Music IS data**, could you do something **useful and insightful** with it to **find some answers**?”
+  
+On that last comment, my inner kid sparked up and went “ooh this could be so much fun, we can learn, write, and do an analysis with sound engineering, signal processing, text mining and natural language processing”. I very quickly realised to cover off all of those topics in a single blog wouldn’t be doing any of those single topics any justice. I would need to chunk-down these topics into separate blogs. So for this blog, I’m choosing to do one smaller topic, with great love:
+
+**A music lyrical analysis!** 
+
+Working with the lyrical components for a selected collection of music data. We shall apply **text mining** and **natural language processing** techniques to this data to explore the above questions, build insights and find some answers.
+
+The target audience for this analysis is aimed at the general population of music enthusiasts, data scientists, data-folk, and anyone who’s ever wondered what on earth Led Zeppelin’s Kashmir was about.
+
+&nbsp;
+
+## Technical guiding questions for designing this analysis 
+
+As we flow through this analysis I’m seeking to weave in my responses to four key technical questions which are relevant for text mining and natural language processing:
+
+  1.	How will you acquire and structure the data?
+  2.	How can we visualise this data to tell us a story and help us make meaningful sense of the data?
+  3.	What are the important key words and n-gram constructs associated with each artist’s album?
+  4.	What are the sentiments (and polarities) of each song and album?
+  5.	What topics emerge from the albums? Can machine learning be useful here?
+
+&nbsp;
+
+## Project workflow 
+
+This project will be written in R, with the [repository link here](https://github.com/breemclennan/music_lyric_analysi)
+
+**Sequencing:**
+
+  * **1.	Data considerations**
+  
+    + a.  Artist and album selection
+    + b.	Obtaining lyrics
+    + c.	Converting lyric sheets into a useful dataset
+    + d.  Data cleaning & pre processing
+    + e.	Additional data: Using the Spotify API
+    + f.	Observing the specific and unique nature of music lyrics in a text analysis context
+    + g.	Variable names and the source dataset	
+    + h.  Feature engineering
+    
+    &nbsp;
+    
+  * **2.	Manual Data Exploration**
+  
+    + a.  Creating tokens  
+    + b.  Identifying vocal and instrumental songs
+    + c.  Word counts by song & album
+    + d.  Wordclouds
+    + e.  Lexical diversity (vocabulary)
+    + f.  Lexical density (repetition)
+    + g.  song lyrics self-similarity matrices (SongSim) & repetition
+    + h.  Term Frequency Inverse Document Frequency (TF-IDF)
+    
+    &nbsp;
+    
+  * **3.	Sentiment Analysis & Natural Language Processing (NLP)** 
+  
+    + a.  NRC Emotional Sentiment
+    + b.  NGrams, bi-grams & tri-grams
+    + c.  Bi-gram network analysis
+    + d.  Pair-wise comparisons
+    + e.  Album similarity
+    + f.  Song dissimilarity (agreement between lyrics)
+    
+    &nbsp;
+    
+  * **4.	Unsupervised Machine Learning**
+  
+    + a.	Topic modelling: Structured Topic Modelling (STM)
+    
+    &nbsp;
+    
+  * **5.	Findings & Learnings**
+  
+    +	Findings
+    + Learnings, gotchas, traps for young players
+    + Where to next, part 2
+    
+  &nbsp;
+  
+  * **5.	References**
+  
+   &nbsp;
+
+## Data Considerations
+
+**Intellectual property & copyrights**
+Because we are working with copyrighted material in reference to music lyrics, the copyright belongs to the artists and songwriters who created the songs and the lyrics.
+
+ &nbsp;
+
+**Artist and album selection**
+After much deliberation and consulting with friends and family, I decided to select 6 artists and an album from each of these artists. 
+
+ &nbsp;
+
++---------------+-------------------+---------------+-------------+--------------------------------------+---------------+---------------------------------------------------------+
+| Artist        | Album             | Release Year  | Genre       | Tracks                               |  Review Tags  |  Other Notes & Rationale for selection                  |
++===============+===================+===============+=============+======================================+===============+=========================================================+
+| Daft Punk     | Discovery         | 2001          | Electronic  | 1.	One More Time                    | Electronic,   | Aerodynamic, Crescendolls, Nightvision, Superheroes,    |  
+|               |                   |               |             | 2.	Aerodynamic                      | House,        | High Life, Voyager, Viridis Quo and Short Circuit       |
+|               |                   |               |             | 3.	Digital Love                     | Rock,         | are instrumental songs. We will include these for sound |
+|               |                   |               |             | 4.	Harder, Better, Faster, Stronger | Techno,       | analysis in a subsequent exploration of music analysis. |
+|               |                   |               |             | 5.	Crescendolls                     | Funk,         |                                                         |
+|               |                   |               |             | 6.	Nightvision                      | Modern Disco  | Music video movie “Interstella 555:                     |
+|               |                   |               |             | 7.	Superheroes                      |               | The Story of the Secret Star System”.                   |
+|               |                   |               |             | 8.	High Life                        |               | The film is the visual realization of Discovery.        |
+|               |                   |               |             | 9.	Something About Us               |               |                                                         |
+|               |                   |               |             | 10. Voyager                          |               | http://www.imdb.com/title/tt0368667/                    |
+|               |                   |               |             | 11. Veridis Quo                      |               |                                                         |
+|               |                   |               |             | 12. Short Circuit                    |               | Bree’s favourite Daft Punk album.                       |
+|               |                   |               |             | 13. Face to Face                     |               |                                                         |
+|               |                   |               |             | 14. Too Long                         |               |                                                         |
+|               |                   |               |             |                                      |               |                                                         |
+|               |                   |               |             |                                      |               |                                                         |
++---------------+-------------------+---------------+-------------+--------------------------------------+---------------+---------------------------------------------------------+
+| U2            | The Joshua Tree   | 1987          | Rock        | 1.	Where the streets have no name   | Rock,         | One of the biggest selling albums of all time.          |  
+|               |                   |               |             | 2.	I still haven't found what       | Gospel,       | 30th Anniversary of its release in 2017                 |
+|               |                   |               |             | I'm looking for                      |               | saw U2 take it on tour.                                 |
+|               |                   |               |             | 3.	With or without you              |               |                                                         |
+|               |                   |               |             | 4.	Bullet the blue sky              |               |                                                         |
+|               |                   |               |             | 5.	Running to stand still           |               |                                                         |
+|               |                   |               |             | 6.	Red hill mining town             |               |                                                         |
+|               |                   |               |             | 7.	In God's country                 |               |                                                         |
+|               |                   |               |             | 8.	Trip through your wires          |               |                                                         |
+|               |                   |               |             | 9.  One tree hill                    |               |                                                         |
+|               |                   |               |             | 10. Exit                             |               |                                                         |
+|               |                   |               |             | 11. Mothers of the disappeared       |               |                                                         |
+|               |                   |               |             |                                      |               |                                                         |
++---------------+-------------------+---------------+-------------+--------------------------------------+---------------+---------------------------------------------------------+
+| Elton John    | Honky Chateau     | 1972          | Rock        | 1.  Honky Cat                        | Rock,         | Rolling Stone believes this was the album which         |  
+|               |                   |               |             | 2.  Mellow                           | Pop,          | marked the transformation of Elton John from gentle     |
+|               |                   |               |             | 3.  I think I'm going to kill myself | Rock & Roll   | singer/songwriter to a legitimate rock star.            |
+|               |                   |               |             | 4.  Susie (Dramas)                   |               |                                                         |
+|               |                   |               |             | 5.  Rocket Man (I think it's going   |               | https://www.rollingstone.com/music/pictures/readers-poll-the-10-best-elton-john-albums-20130918/5-honky-chateau-3-78-9                                                        |
+|               |                   |               |             |     to be a long, long time)         |               |                                                         |
+|               |                   |               |             | 6.  Salvation                        |               |                                                         |
+|               |                   |               |             | 7.  Slave                            |               |                                                         |
+|               |                   |               |             | 8.  Amy                              |               |                                                         |
+|               |                   |               |             | 9.  Mona Lisa and Mad Hatters        |               |                                                         |
+|               |                   |               |             | 10. Hercules                         |               |                                                         |
+|               |                   |               |             |                                      |               |                                                         |
++---------------+-------------------+---------------+-------------+--------------------------------------+---------------+---------------------------------------------------------+
+| Killswitch    | Alive or Just     | 2002          | Metal Core  | 1.	Numbered Days                    | Hardcore      | Loudwire suggests this is the greatest                  |  
+| Engage        | Breathing         |               |             | 2.	Self Revolution                  | Metal,        | album KsE produced.                                     |
+|               |                   |               |             | 3.	Fixation on the Darkness         |               |                                                         |
+|               |                   |               |             | 4.	My Last Serenade                 |               | http://loudwire.com/killswitch-engage-albums-ranked/    |
+|               |                   |               |             | 5.	Life to Lifeless                 |               |                                                         |
+|               |                   |               |             | 6.	Just Barely Breathing            |               |                                                         |
+|               |                   |               |             | 7.	To The Sons of Man               |               |                                                         |
+|               |                   |               |             | 8.	Temple from Within               |               |                                                         |
+|               |                   |               |             | 9.	The Element of One               |               |                                                         |
+|               |                   |               |             | 10. Vide Infra                       |               |                                                         |
+|               |                   |               |             | 11. Without a Name                   |               |                                                         |
+|               |                   |               |             | 12. Rise Inside                      |               |                                                         |
+|               |                   |               |             | 13. When the Balance is Broken       |               |                                                         |
+|               |                   |               |             |                                      |               |                                                         |
++---------------+-------------------+---------------+-------------+--------------------------------------+---------------+---------------------------------------------------------+
+| Iron          | Powerslave        | 1984          | Heavy Metal | 1.	Aces High                        | Hard Rock,    | LouderSound suggests this is the greatest               |  
+| Maiden        |                   |               |             | 2.	Two Minutes to Midnight          | Heavy Metal   | album Iron Maiden produced.                             |
+|               |                   |               |             | 3.	Losfer Words (Big 'Orra)         |               |                                                         |
+|               |                   |               |             | 4.  Flash of the Blade               |               | https://www.loudersound.com/features/every-iron-maiden-album-ranked-from-worst-to-best    |
+|               |                   |               |             | 5.	The Duellists                    |               |                                                         |
+|               |                   |               |             | 6.	Back in the Village              |               |                                                         |
+|               |                   |               |             | 7.	Powerslave                       |               |                                                         |
+|               |                   |               |             | 8.	Rime of the Ancient Mariner      |               |                                                         |
+|               |                   |               |             |                                      |               |                                                         |
++---------------+-------------------+---------------+-------------+--------------------------------------+---------------+---------------------------------------------------------+
+| Led           | Physical Graffiti | 1975          | Rock        | 1.	Custard Pie                      | Hard Rock,    | Bree wants to inspect Kashmir further.                 |  
+| Zeppelin      |                   |               |             | 2.	The Rover                        | Heavy Metal   |                                                         |
+|               |                   |               |             | 3.	In my Time of Dying              |               | Bron-Yr-Aur is an instrumental                          |
+|               |                   |               |             | 4.  Houses of the Holy               |               |                                                         |
+|               |                   |               |             | 5.	Trampled Under Foot              |               |                                                         |
+|               |                   |               |             | 6.	Kashmir                          |               |                                                         |
+|               |                   |               |             | 7.	In the Light                     |               |                                                         |
+|               |                   |               |             | 8.	Bron-Yr-Aur                      |               |                                                         |
+|               |                   |               |             |                                      |               |                                                         |
++---------------+-------------------+---------------+-------------+--------------------------------------+---------------+---------------------------------------------------------+
+
+
+&nbsp;
+ 
+**Obtaining lyrics**
+
+I made a conscious decision to download the lyrics for the selected albums, manually. This was achieved by googling, finding the correct lyric sheets and then copying and pasting into Microsoft Word. I could have just as easily set up an R script to web-scrape, but I wanted to observe and have full control over the state and structure the lyrics were being stored as and apply some very specific formats, for a reason, which I will explain in the next section.
+
+&nbsp;
+ 
+**Converting lyric sheets into a useful dataset**
+
+For the source dataset we’re creating, we want to maintain the “structural integrity” of the music lyrics as we import them into data frames. This means our dataset looks the same way the lyric sheet looks. We have rows for album title, rows for song titles, rows for each verse and each chorus.
+
+Why?
+
+Music is all about patterns, sequences and time signatures. Lyrics are written differently to many other forms of written communication, lyrics are also interwoven with sound. It would be inappropriate at this point to treat the lyrics as one giant “word pool”, lets firstly observe the lyrics in as close to the original structure as they were written.
+How do we do this?
+
+Let’s keep the lyric sheets in docx format for now and check the integrity of the style formats
+There’s magic in the little “¶” button on the paragraph menu pane in Microsoft Word. 
+For each lyric sheet we have, turn on paragraph marks and make the following adjustments:
+
+  * Configure styles for Heading 1, Heading 2, Heading 3, Normal body and spacing after paragraph
+  * Heading 1 – Artist name
+  * Heading 2 – Album name
+  * Heading 3 – song title name
+  * Song lyrics – Normal body
+
+Each verse and chorus separated by paragraph. Individual lines within verses and choruses separated with carriage return (Enter key).
+
+Between each style component, create separate by a single paragraph. Paragraphs will create new rows for our dataset, as will differentiating styles.
+
+```{r "DataConsideration_LyricSheet01", echo=FALSE, out.width = "50%"}
+# Render lyric sheet setup example
+include_graphics(image02_path)
+```
+
+&nbsp;
+
+Using the Officer package to read in the collection of word documents:
+
+```{r "ReadInWordDocument", echo=TRUE, eval=FALSE}
+# Working with word documents:
+# Read in each file and use doc summary to map styles used in document as music lyric components
+# Then apply some common hirarchial groupings: Artist, Album, track name and grouping
+library(officer)
+library(qdapTools)
+
+doc02 <- read_docx(F("Data/Raw/U2 - The Joshua Tree.docx"))
+raw.data02 <- docx_summary(doc02) %>%
+  mutate(CATMusicArtist = "U2",
+         CATMusicAlbum = "The Joshua Tree",
+         CATTrackName = ifelse(style_name == "heading 3", text, "None"),
+         CATTrackName = na.locf(CATTrackName), #fill down track number
+         style_name = ifelse(is.na(style_name), "body", style_name)
+  ) %>%
+  group_by(CATTrackName) %>%
+  mutate(NUMTrackLyricLineNumber = sequence(n()) - 1) #using minus 1 so we dont include the heading
+
+```
+
+As a data-frame these lyrics become:
+
+&nbsp;
+
+```{r "DataConsideration_LyricSheet02", echo=FALSE, out.width = "75%"}
+# Render lyric sheet result in dataframe
+include_graphics(image03_path)
+```
+
+&nbsp;
+
+Using QDAP to clean up and prepare the lyric data 
+
+```{r "QDAPChecks", echo=TRUE, eval=FALSE}
+
+# Using the dataset which contains all raw imported lyric sheets from the previous step:
+# Tidy up the track name variable for when we need to use this as a merge key
+# Identify the songs which are instrumental. We will filter these out for this analysis.
+wrk.01_Data_Prep <- wrk.data %>%
+  mutate(BINTrackIsInstrumental = ifelse(style_name == "body" & trimws(text) == "[Instrumental]", 1, 0)) %>%
+  mutate(KEYTrackName = toupper(trimws(CATTrackName)))
+       
+# Use QDAP qview to identify suggestions for tidy up. Results will be written to a text file.
+qview(wrk.01_Data_Prep)   
+check_text(wrk.01_Data_Prep$text, file=F("Data/Raw/QDAPCheckText_wrk.01_Data_Prep.txt")) 
+
+# Applying QDAP cleanup recommendations
+wrk.01_Data_Prep$text <- replace_number(wrk.01_Data_Prep$text, num.paste = TRUE, remove = FALSE)
+wrk.01_Data_Prep$text <- incomplete_replace(wrk.01_Data_Prep$text)
+wrk.01_Data_Prep$text <- comma_spacer(wrk.01_Data_Prep$text)
+wrk.01_Data_Prep$text <- clean(wrk.01_Data_Prep$text)
+wrk.01_Data_Prep$text <- scrubber(wrk.01_Data_Prep$text, fix.comma = TRUE, fix.space = TRUE)
+
+```
+
+&nbsp;
+
+**Additional data: Using the Spotify API**
+
+I thought it would be useful to explore alternative sources of data to complement the lyrical dataset we just created. In my exploration, I came across the spotifyr package [with more details here](https://github.com/charlie86/spotifyr). After setting up a [Spotify developers account](https://beta.developer.spotify.com/dashboard/) I was able to obtain the necessary “client ID” and “client secret” tokens, and set these as environment variables to use in the spotifyr functions.
+
+&nbsp;
+
+
+```{r "SampleSpotifyAPICode", echo=TRUE, eval=FALSE}
+#devtools::install_github('charlie86/spotifyr')
+#install.packages('spotifyr')
+library(spotifyr)
+# https://github.com/charlie86/spotifyr
+
+# app name "MusicLyricAnalysis1"
+Sys.setenv(SPOTIFY_CLIENT_ID = "ADD TOKEN HERE")
+Sys.setenv(SPOTIFY_CLIENT_SECRET = "ADD TOKEN HERE")
+
+access_token <- get_spotify_access_token()
+
+#Extract data from spotify
+spotify_df_U2 <- get_artist_audio_features('U2',access_token)
+spotify_df_DaftPunk <- get_artist_audio_features('Daft Punk',access_token)
+spotify_df_EltonJohn <- get_artist_audio_features('Elton John',access_token)
+spotify_df_LedZeppelin <- get_artist_audio_features('Led Zeppelin',access_token)
+spotify_df_KillswitchEngage <- get_artist_audio_features('Killswitch Engage',access_token)
+spotify_df_IronMaiden <- get_artist_audio_features('Iron Maiden',access_token)
+
+spotify_U2_filtered <- filter(spotify_df_U2, album_name == "The Joshua Tree (Deluxe)") #we got extra live songs
+spotify_DaftPunk_filtered <- filter(spotify_df_DaftPunk, album_name == "Discovery")
+spotify_EltonJohn_filtered <- filter(spotify_df_EltonJohn, album_name == "Honky Chateau") #no results
+spotify_LedZeppelin_filtered <- filter(spotify_df_LedZeppelin, album_name == "Physical Graffiti")
+spotify_KillswitchEngage_filtered <- filter(spotify_df_KillswitchEngage, album_name == "Alive or Just Breathing [Topshelf Edition]")
+spotify_IronMaiden_filtered <- filter(spotify_df_IronMaiden, album_name == "Powerslave (1998 Remastered Edition)")
+
+# We can keep these datasets in data frame format for now, dataset size is tiny.
+raw.SpotifyArtistList <- list(spotify_U2_filtered, spotify_DaftPunk_filtered, spotify_EltonJohn_filtered,
+                              spotify_LedZeppelin_filtered, spotify_KillswitchEngage_filtered, spotify_IronMaiden_filtered)
+# Append all above raw datasets together
+raw.SpotifyArtistAlbumTrackData <- rbindlist(raw.SpotifyArtistList) %>%
+  mutate(KEYTrackName = toupper(trimws(track_name)))
+
+# Save Feather file from 
+write_feather(raw.SpotifyArtistAlbumTrackData, F("Data/Raw/raw.SpotifyArtistAlbumTrackData.feather"))
+
+wrk.01_DataPrep_LyricsWithSpotify <- list(wrk.01_Data_Prep, raw.SpotifyArtistAlbumTrackData) %>%
+  reduce(left_join, by = c("KEYTrackName" = "KEYTrackName"))
+
+# Save Feather file from 
+write_feather(wrk.01_DataPrep_LyricsWithSpotify, F("Data/Processed/wrk.01_DataPrep_LyricsWithSpotify.feather"))
+```
+&nbsp;
+
+Inspecting the Spotify data for the collection of albums:
+
+&nbsp;
+```{r "CheckSpotifyDataset", echo=TRUE, eval=TRUE}
+# Check over the dataset
+glimpse(raw.SpotifyArtistAlbumTrackData)
+
+```
+
+&nbsp;
+
+After attempting to extract the desired albums from the selected artists, I discovered that not all albums or songs from the albums were available on spotify. For example, Elton John’s Honky Chateau was not available to extract, instead only single tracks were available via a best-of album. For U2’s Joshua Tree, the original release album is not available, only the deluxe edition which comes with extra live performance tracks. Similar situation for Iron Maiden’s Powerslave.
+
+&nbsp;
+
+```{r "SpotifyTracksNotMatching", echo=TRUE, eval=TRUE}
+
+CheckSpotify <- select(raw.SpotifyArtistAlbumTrackData,album_name, track_name)
+checkSpotify_NotMatchingSource <- anti_join(CheckSpotify, wrk.01_Data_Prep, by = c("track_name" = "CATTrackName") ) #all spotify songs not matching our source data
+glimpse(select(checkSpotify_NotMatchingSource,album_name, track_name ))
+
+```
+&nbsp;
+
+
+**Observing the specific and unique nature of music lyrics in a text analysis context**
+
+A few things we can observe and acknowledge so far:
+
+  *	Some songs will be instrumental. I’ve flagged these songs with “[Instrumental]” text flags. We can filter these out of our analysis and re-use these in subsequent analysis – perhaps for signal or beat detection analysis!
+  * Each lyric “line” is meaningful in the flow of a song. Each line can be linked to subsequent lines via rhyming and context. We expect the lyric sheets to loosely resemble poetry and we expect a higher instance of repetition, because music is full of patterns (unless we’re dealing with some kind of random jam session or jazz genres!)
+  *	The number of songs will vary per artist and album. Some albums will have more songs than others. We need to be mindful of any analysis utilising word counts or averages
+  * In reality: The lyrics are interwoven with an audio track. This analysis is like staring at words in segregated silence. With the audio track interwoven this adds the dimensions of time series, verbal intonation and speech/verbal patterns, and emotional sentiment , all of which lead us to interpret the lyrics differently to how we would analysing lyrics in isolation.
+
+&nbsp;
+
+** Variable names and the source dataset **
+	
+Here is a summary of the source dataset we’ll use for this analysis. It’s one row per album track. All lyrics for each track are contained within a single variable TXTAllTrackLyrics. The end of each lyric line is signified with “<br>’
+
+&nbsp;
+
+```{r "VariableNamesSourceDataset", echo=TRUE, eval=TRUE}
+
+# Create a new dataframe with one row of lyrics for each track (instead of multiple rows per verse/chorus)
+wrk.02_TextAnalysis_00 <-  wrk.01_DataPrep_LyricsWithSpotify %>% 
+  group_by(CATTrackName) %>% 
+  mutate(TXTAllTrackLyrics = paste0(text, sep = "<br>", collapse = " ")) %>%
+  mutate(NUMMaxLyricLines = max(as.numeric(NUMTrackLyricLineNumber)))
+
+# Create a dataset with one row per song. One variable & record to hold all lyrics for a song.
+wrk.02_TextAnalysis_01 <- wrk.02_TextAnalysis_00 %>%
+  filter(style_name == "heading 3")
+
+# lets now remove songs which were purely instrumental only
+wrk.02_TextAnalysis_02 <- wrk.02_TextAnalysis_01 %>%
+  filter(str_detect(TXTAllTrackLyrics, "Instrumental") == FALSE )
+
+#Summary
+glimpse(wrk.02_TextAnalysis_02)
+
+#Identify any specific/customisable words we wish to eliminate later on
+undesirable_words <- c("chorus", "lyrics", "verse")
+
+```
+&nbsp;
+
+** Feature engineering **
+
+#######################
+
+&nbsp;
+
+## Manual Data Exploration
+
+**a.  Creating tokens  **
+
+&nbsp;
+
+
+```{r "Exploration_Tokens", echo=TRUE, eval=TRUE}
+library(tidytext)
+
+#Create lyric verse tokens using tidytext [dataset will be one row per verse]
+lineToken <- wrk.02_TextAnalysis_02 %>%
+  ungroup() %>%
+  unnest_tokens(line, TXTAllTrackLyrics, token = stringr::str_split, pattern = '<br>') %>% #break the lyrics into verses
+  mutate(lineCount = row_number()) #Create a line counter so we know which verse record is which
+
+# Create lyric word tokens and apply tidy text format [dataset will be one row per lyric word]
+# We have the option to remove stop words at this point. 
+# Selecting not to do this yet, as we wish to visually observe the raw form of the dataset.
+wordToken <-  lineToken %>% 
+  unnest_tokens(word, line) %>%  #Break the lyrics into individual words
+  # anti_join(stop_words) %>% #TM/tidytext removing stop words
+  filter(!word %in% undesirable_words) #removing custom configured stop words
+
+# Add in full word counts for each song (non-distinct)
+wrk.02_TextAnalysis_03_WordCount <- wordToken %>%
+  group_by(CATMusicArtist,CATMusicAlbum, CATTrackName) %>%
+  summarise(num_words = n()) %>%
+  arrange(desc(num_words)) 
+```
+
+&nbsp;
+
+**b.  Identifying vocal and instrumental songs**
+
+&nbsp;
+
+```{r "Exploration_Instrumental", echo=FALSE, eval=TRUE}
+
+# Number of songs by artist
+wrk.02_TextAnalysis_03_SongPerArtist <- wrk.02_TextAnalysis_01 %>%
+  ungroup() %>%
+  mutate(BINSongIsInstrumental = as.factor(ifelse(str_detect(TXTAllTrackLyrics, "Instrumental") == TRUE, 1,0 ))) %>%
+  mutate(BINSongIsInstrumental = as.numeric(BINSongIsInstrumental)) %>%
+  group_by(CATMusicArtist,CATMusicAlbum) %>%
+  add_tally() %>% #count the total number of rows in the by group assign to variable "n"
+  rename(NUMTotalSongsForArtist = n) %>% # RENAME PARAMETERS (NEW NAME = OLD NAME).
+  ungroup() 
+
+#instrumental songs
+instrumental <- filter(wrk.02_TextAnalysis_03_SongPerArtist, str_detect(TXTAllTrackLyrics, "Instrumental") == TRUE )
+
+instrumental %>%
+  select(CATMusicArtist, CATMusicAlbum, CATTrackName) %>%
+  kable("html", escape = FALSE, align = "c", caption = "Instrumental Songs") %>%
+  kable_styling(bootstrap_options = 
+                  c("striped", "condensed", "bordered"), full_width = FALSE)
+```
+
+&nbsp;
+
+
+**c.  Word counts by song & album**
+```{r "Exploration_SongWordCountTotal", echo=FALSE, eval=TRUE}
+
+# Songs by the highest unique word count
+wrk.02_TextAnalysis_03_WordCount %>%
+  ungroup(num_words, CATTrackName) %>%
+  mutate(num_words = color_bar("lightblue")(num_words)) %>%
+  mutate(CATTrackName = color_tile("lightpink","lightpink")(CATTrackName)) %>%
+  kable("html", escape = FALSE, align = "c", caption = "Songs With Highest Total Word Count") %>%
+  kable_styling(bootstrap_options = 
+                  c("striped", "condensed", "bordered"), 
+                full_width = FALSE)
+
+```
+
+This table doesn't give us clarity of seeing how the songs are grouped to their respective albums. We also need to be careful about using total word counts. Considering Daft Punk’s Discovery, many of the songs on this album are instrumental songs. Let's try another visualisation.
+
+```{r "Exploration_AlbumWordCountGantt", echo=FALSE, eval=TRUE, out.width = "100%"}
+
+#TOTAL WORD COUNT: USING QDAP
+#wrk.02_TextAnalysis_03_QDAPWordCount <- with(wrk.02_TextAnalysis_02, qdap::gantt_rep(rm.var = CATMusicArtist, text.var = #TXTAllTrackLyrics, grouping.var = CATTrackName ))
+
+#gantt_wrap(wrk.02_TextAnalysis_03_QDAPWordCount,
+#           plot.var = "CATMusicArtist", fill.var = "CATTrackName",
+#           border.color = "black",
+#           legend.position = "bottom",
+#           major.line.freq = 250,
+#           ncol = 2,
+#           size = 7,
+#           border.size = 4,
+#           border.width = .4,
+#           title = "Total word count for each artist & album") 
+
+include_graphics(image04_path)
+
+```
+
+
+&nbsp;
+
+
+**d.  Wordclouds**
+
+```{r "Exploration_WordClouds", echo=FALSE, eval=TRUE}
+
+# Most common words in each album
+wrk.02_TextAnalysis_03_CommonWordsAlbum <- wordToken %>%
+  anti_join(stop_words) %>% # remove stop words, allow us to see some more meaningful results
+  count(CATMusicArtist, CATMusicAlbum, word, sort = TRUE) %>%
+  ungroup()
+
+# WORD CLOUDS - for each album
+library(wordcloud2)
+#==== DAFT PUNK
+albums_wordcloud_DaftPunk <- wrk.02_TextAnalysis_03_CommonWordsAlbum %>%
+as.data.frame(albums_wordcloud) %>%
+  filter(CATMusicArtist == "Daft Punk") %>%
+  select(word, n) 
+wordcloud2(albums_wordcloud_DaftPunk[1:88, ], size = .5) #wont render if rownum set to more than whats in the dataset
+
+#==== U2
+albums_wordcloud_U2 <- wrk.02_TextAnalysis_03_CommonWordsAlbum %>%
+  as.data.frame(albums_wordcloud) %>%
+  filter(CATMusicArtist == "U2") %>%
+  select(word, n) 
+wordcloud2(albums_wordcloud_U2[1:100, ], size = .5)
+
+#==== Elton John
+albums_wordcloud_Elton <- wrk.02_TextAnalysis_03_CommonWordsAlbum %>%
+  as.data.frame(albums_wordcloud) %>%
+  filter(CATMusicArtist == "Elton John") %>%
+  select(word, n) 
+wordcloud2(albums_wordcloud_Elton[1:100, ], size = .5)
+
+#==== Led Zeppelin
+albums_wordcloud_LedZep <- wrk.02_TextAnalysis_03_CommonWordsAlbum %>%
+  as.data.frame(albums_wordcloud) %>%
+  filter(CATMusicArtist == "Led Zeppelin") %>%
+  select(word, n) 
+wordcloud2(albums_wordcloud_LedZep[1:100, ], size = .5)
+
+#==== Killswitch Engage
+albums_wordcloud_KsE <- wrk.02_TextAnalysis_03_CommonWordsAlbum %>%
+  as.data.frame(albums_wordcloud) %>%
+  filter(CATMusicArtist == "Killswitch Engage") %>%
+  select(word, n) 
+wordcloud2(albums_wordcloud_KsE[1:100, ], size = .5)
+
+#==== Iron Maiden
+albums_wordcloud_IronMaiden <- wrk.02_TextAnalysis_03_CommonWordsAlbum %>%
+  as.data.frame(albums_wordcloud) %>%
+  filter(CATMusicArtist == "Iron Maiden") %>%
+  select(word, n) 
+wordcloud2(albums_wordcloud_IronMaiden[1:100, ], size = .5)
+
+```
+
+
+e.  Lexical diversity (vocabulary)
+
+```{r "Exploration_LexicalDiversity", echo=FALSE, eval=TRUE}
+# Let's observe the lexical diversity, or vocabulary, of each of the song lyrics.
+# Assumption: the more diverse the lyrics, the larger the vocabulary
+# Using a continuous dependent variable "word_count", as a function of the categorical independent variable, album.
+LexicalDensity_01 <- wordToken %>%
+  anti_join(stop_words) %>% 
+  group_by(CATMusicArtist, CATMusicAlbum, CATTrackName) %>%
+  mutate(CATArtistAlbumTrack = paste(CATMusicArtist, CATMusicAlbum, CATTrackName, sep = " - ")) %>%
+  mutate(CATArtistAlbum = paste(CATMusicArtist, CATMusicAlbum, sep = " - ")) %>%
+  mutate(word_count = n_distinct(word)) %>%
+  select(CATMusicArtist, CATMusicAlbum, CATTrackName, CATArtistAlbum, CATArtistAlbumTrack, word_count) %>%
+  distinct() %>% #Summarise to one record per song, distinct word count
+  ungroup()
+
+library(yarrr)
+#Lets draw the plot
+#par(mar = c(5.1, 4.1, 4.1, 2.1)) # Set the margin on all sides to 2
+#par(mfrow = c(1, 1))
+pirateplot(formula =  word_count ~ CATMusicArtist, #Formula
+           data = LexicalDensity_01, #Data frame
+           xlab = NULL, ylab = "Song Distinct Word Count", #Axis labels
+           main = "Lexical Diversity Per Artist & Album", #Plot title
+           pal = "espresso", #Color scheme
+           back.col = gray(.98), # Add light gray background
+           gl.col = "gray", # Gray gridlines
+           gl.lwd = c(.75, 0),
+           inf.f.o = .6, # Turn up inf filling
+           inf.disp = "rect", # Wrap inference around bean
+           bean.b.o = .4, # Turn down bean borders
+           quant = c(.25, .75), # 25th and 75th quantiles
+           quant.col = "black", # Black quantile lines
+           point.o = .2, #Points
+           avg.line.o = 1, #Turn on the Average/Mean line
+           theme = 2, #Theme
+           point.pch = 16, #Point `pch` type
+           point.cex = 1.5, #Point size
+           jitter.val = .1, #Turn on jitter to see the songs better
+           cex.lab = 1, cex.names = .9) #Axis label size
+```
+
+
+**f.  Lexical density (repetition)**
+
+
+**g.  song lyrics self-similarity matrices (SongSim) & repetition**
+
+--------
+describe the process of building the matrices for all songs
+
+
+```{r "Exploration_SongSim_KashmirInteractive", echo=FALSE, out.width = "75%"}
+# Render interactive SongSim for Kashmir
+#include_graphics(image03_path)
+```
+
+```{r "Exploration_SongSim_Repetition", echo=FALSE, out.width = "75%"}
+# Plot the lexical density / repetition pirate plot
+```
+
+
+```{r "Exploration_SongSim_Poster", echo=FALSE, out.width = "75%"}
+# Render SongSim Poster or link on github
+#include_graphics(image03_path)
+```
+
+
+**h.  Term Frequency Inverse Document Frequency (TF-IDF)**
+
+# What are the highest tf-idf words across these 6 music albums? The td-idf statistic identifies words that are
+# important to a document in a collection of documents [in our case, Music Albums]. We'll see which words are important
+# in one music album, compared to the others.
+# how important is this word/song lyric to this document/music track & album, compared to other words in the collection of albums?
+
+#TF is "term frequency". IDF is "inverse document frequency",
+# which attaches a lower weight for commonly used words and a higher weight for 
+# words that are not used much in a collection of text. When you combine TF and IDF,
+# a term's importance is adjusted for how rarely it is used. The assumption behind TF-IDF 
+# is that terms that appear more frequently in a document should be given a higher weight,
+# unless it also appears in many documents. The formula can be summarized below:
+# - Term Frequency (TF): Number of times a term occurs in a document
+# - Document Frequency (DF): Number of documents that contain each word
+# - Inverse Document Frequency (IDF) = 1/DF
+# - TF-IDF = TF * IDF
+#The IDF of any term is therefore a higher number for words that occur in fewer of the documents in the collection. 
+
+# Find the TF-IDF within the albums
+# We expect the albums to differ in terms of subject/topic, content and sentiment, we therefore expect the frequency of words to differ 
+# between albums, We can use TF-IDF metric to calculate these differences.
+
+```{r "Exploration_TFIDF", echo=FALSE, eval=TRUE}
+
+tidy_MusicLyrics <- lineToken %>%
+  unnest_tokens(word, text) %>%
+  anti_join(stop_words) %>%
+
+  #filter(word != "")
+
+tidy_MusicLyrics %>% #check the word list and identify any further words to filter out above.
+  count(word, sort = TRUE)
+
+MusicLyrics_tf_idf <- tidy_MusicLyrics %>%
+  count(CATMusicArtist, word, sort = TRUE) %>%
+  bind_tf_idf(word, CATMusicArtist, n) %>%
+  arrange(-tf_idf) %>%
+  group_by(CATMusicArtist) %>%
+  top_n(10) %>% #the top 10 highest td-idf words
+  ungroup()
+
+MusicLyrics_tf_idf %>%
+  mutate(word = reorder(word, tf_idf)) %>%
+  ggplot(aes(word, tf_idf, fill = CATMusicArtist)) +
+  geom_col(alpha = 0.8, show.legend = FALSE) +
+  facet_wrap(~ CATMusicArtist, scales = "free", ncol = 3) +
+  #scale_x_reordered() +
+  coord_flip() +
+  theme(strip.text=element_text(size=11)) +
+  labs(x = NULL, y = "tf-idf",
+       title = "Highest tf-idf words in collection of Music Albums",
+       subtitle = "Individual songs focus on different themes and narrative elements")
+
+
+```
+
+#We see lots of familiar lyric words here.
+#as well as specific narrative elements for individual songs, like faster-harder-stronger,
+# rocket, minutes-midnight, numbered-days, kashmir, red-hill-mining-town.
+#🐦 Exploring tf-idf can be helpful before training topic models
+
+
+##Sentiment Analysis & Natural Language Processing (NLP)
+  
+**a.  NRC Emotional Sentiment**
+
+# Do we need to perform more Data Preparation?
+# It may be the case that you need a few more data preparation steps. Here are three techniques to consider before performing sentiment analysis:
+# Stemming: generally refers to removing suffixes from words to get the common origin
+# Lemmatization: reducing inflected (or sometimes derived) words to their word stem, base or root form
+#Word replacement: replace words with more frequently used synonyms
+#An advanced concept in sentiment analysis is that of synonym (semantically similar peer)
+#and hypernym (a common parent) replacement. These are words that are more frequently used than
+#the related word in the lyric, and actually do appear in a lexicon, thus giving a higher match percentage. 
+#There is not enough space in this tutorial to address additional data preparation, 
+#but it's definitely something to consider!
+#Challenge: do a little research on lexicons and how they are created. Is there already one that exists that is better suited to musical lyrics? If you're really interested, maybe consider what it would take to build your own lexicon. 
+#What is the difference between classifier-based sentiment analysis and lexicon-based sentiment analysis?
+#==================
+#we can consider stemming/root words here, incase we want to explore matching words in lexicons
+#syuzhet pkg
+#Calls the NRC sentiment dictionary to calculate the presence of 
+#eight different emotions and their corresponding valence in a text file.
+
+```{r "Exploration_NRCSentiment", echo=FALSE, eval=TRUE}
+#METHOD 1: USING TIDY TEXT
+SongSentiment_TidyText_NRC <- wordToken %>%
+  anti_join(stop_words) %>% 
+  inner_join(get_sentiments("nrc")) %>%
+  filter(!sentiment %in% c("positive", "negative")) %>%
+  group_by(CATMusicArtist ,sentiment) %>%
+  count(word, CATMusicArtist, sort = TRUE) %>%
+  arrange(desc(n)) %>%
+  slice(seq_len(8)) %>% #consider top_n() from dplyr also
+  ungroup()
+
+#PLOT NRC SENTIMENT BY ARTST & ALBUM (ALL WORDS)
+SongSentiment_TidyText_NRC %>%
+  #Set `y = 1` to just plot one variable and use word as the label
+  ggplot(aes(word, 1, label = word, fill = sentiment )) +
+  #You want the words, not the points
+  geom_point(color = "transparent") +
+  #Make sure the labels don't overlap
+  geom_label_repel(force = 1,nudge_y = .5, nudge_x = .5,  
+                   direction = "both",
+                   box.padding = 0.04,
+                   segment.color = "transparent",
+                   size = 3) +
+  facet_grid(CATMusicArtist~sentiment) +
+  theme_lyrics() +
+  theme(axis.text.y = element_blank(), axis.text.x = element_blank(),
+        axis.title.x = element_text(size = 6),
+        panel.grid = element_blank(), panel.background = element_blank(),
+        panel.border = element_rect("lightgray", fill = NA),
+        strip.text.x = element_text(size = 9)) +
+  xlab(NULL) + ylab(NULL) +
+  ggtitle("NRC Sentiment by Artist & Album") +
+  coord_flip()
+
+#SongSentiment_TidyText_NRC
+wordToken %>%
+  anti_join(stop_words) %>% 
+  inner_join(get_sentiments("nrc")) %>%
+  filter(!sentiment %in% c("positive", "negative")) %>%
+  group_by(CATMusicArtist ,sentiment) %>%
+  summarise(word_count = n()) %>%
+  ungroup() %>%
+  mutate(sentiment = reorder(sentiment, word_count)) %>%
+  ggplot(aes(sentiment, word_count, fill = -word_count)) +
+  facet_wrap(~CATMusicArtist) +
+  geom_col() +
+  guides(fill = FALSE) +
+  theme_lyrics() +
+  labs(x = "NRC Sentiment", y = "Word Count") +
+  ggtitle("NRC Sentiment by Artist & Album") +
+  coord_flip()
+```
+
+
+
+**b.  NGrams, bi-grams & tri-grams**
+
+```{r "Exploration_BiGrams_TriGrams", echo=FALSE, eval=TRUE}
+
+ BiGrams <- lineToken %>%
+  unnest_tokens(ngram, line, token = "ngrams", n = 2) %>%  #Break the lyrics into individual words
+  #anti_join(stop_words) %>% #removing stop words
+  #filter(!ngram %in% undesirable_words) %>%
+  group_by(CATMusicArtist,CATMusicAlbum, CATTrackName) %>%
+  dplyr::count(ngram, sort = TRUE) %>%
+  ungroup()
+
+  TriGrams <- lineToken %>%
+  unnest_tokens(ngram, line, token = "ngrams", n = 3) %>%  #Break the lyrics into individual words
+  #anti_join(stop_words) %>% #removing stop words
+  filter(!ngram %in% undesirable_words) %>%
+  group_by(CATMusicArtist,CATMusicAlbum, CATTrackName) %>%
+  count(ngram, sort = TRUE) 
+
+library(ggplot2)
+b.G <- BiGrams %>%
+  group_by(CATMusicArtist) %>%
+  mutate(ngram = reorder(ngram, n, sum)) %>%
+  slice(1:10) %>%
+  ungroup() %>%
+  #to reorder the x axis by sum of n, add in reorder() to aes(x= ..)
+  ggplot(aes(x = reorder(ngram, n, sum), n, fill = CATMusicArtist)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ CATMusicArtist, scales = "free") +
+  ylab("Most Frequent bi-Grams") +
+  xlab('Bi-grams') +
+  coord_flip() 
+  
+
+b.G 
+
+t.G <- TriGrams %>%
+  group_by(CATMusicArtist) %>%
+  mutate(ngram = reorder(ngram, n, sum)) %>%
+  slice(1:10) %>%
+  ungroup() %>%
+  #to reorder the x axis by sum of n, add in reorder() to aes(x= ..)
+  ggplot(aes(reorder(ngram, n, sum), n, fill = CATMusicArtist)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ CATMusicArtist, scales = "free") +
+  ylab("Most Frequent Tri-Grams") +
+  xlab('Tri-grams') +
+  coord_flip() 
+
+t.G 
+
+
+```
+
+
+**c.  Bi-gram network analysis**
+
+```{r "Exploration_BiGrams_Network", echo=FALSE, eval=TRUE}
+centre_words <- c("hey","feel","gonna","people","yeah","love","light","time", "life")
+
+#centre_words <- c("i","you","us","we", "they")
+
+bigrams_separated <- BiGrams %>%
+  separate(ngram, c("word1", "word2"), sep = " ")
+
+library(tidytext)
+centre_bigrams <- bigrams_separated %>%
+  select(word1, word2, n) %>%
+  filter(word1 %in% centre_words) %>%
+  group_by(word1) %>%
+  slice(seq_len(20)) %>%
+  ungroup()
+
+bigram_graph <- centre_bigrams %>%
+  graph_from_data_frame() #From `igraph`
+
+set.seed(2016)
+
+a <- grid::arrow(type = "closed", length = unit(.10, "inches"))
+
+ggraph(bigram_graph, layout = "fr") +
+  geom_edge_link() +
+  geom_node_point(color = "lightblue", size = 5) +
+  geom_node_text(aes(label = name), vjust = 1, hjust = 1) +
+  theme_void()
+```
+
+
+
+
+**d.  Pair-wise comparisons**
+
+```{r "Exploration_PairWiseCompare", echo=FALSE, eval=TRUE}
+
+# Which albums are similar to each other in text content? We can explore this by finding
+# the pairwise correlation of word frequencies within each newsgroup, using the pairwise_cor()
+# function from the widyr package
+
+library(widyr)
+
+album_cors <- wrk.02_TextAnalysis_03_CommonWordsAlbum %>%
+  pairwise_cor(CATMusicArtist, word, n, sort = TRUE)
+
+album_cors
+
+#Lets now filter on stronger correlations with the albums and visualise in a network
+library(ggraph)
+library(igraph)
+set.seed(1234)
+
+album_cors %>%
+  filter(correlation > .4) %>%
+  graph_from_data_frame() %>%
+  ggraph(layout = "fr") +
+  geom_edge_link(aes(alpha = correlation, width = correlation)) +
+  geom_node_point(size = 6, color = "lightblue") +
+  geom_node_text(aes(label = name), repel = TRUE) +
+  theme_void()
+# It seems these albums don't correlate strongly! Maybe we can try at the song level?
+
+song_cors <- wrk.02_TextAnalysis_03_CommonWordsSong %>%
+  pairwise_cor(CATTrackName, word, n, sort = TRUE)
+
+song_cors
+
+set.seed(4321)
+
+song_cors %>%
+  filter(correlation > .4) %>%
+  graph_from_data_frame() %>%
+  ggraph(layout = "fr") +
+  geom_edge_link(aes(alpha = correlation, width = correlation)) +
+  geom_node_point(size = 6, color = "lightblue") +
+  geom_node_text(aes(label = name), repel = TRUE) +
+  theme_void()
+# Curious, Elton John's Mona Lisa and Led Zeppelin's Down by the Seaside have a connection with a correlation greater than 0.4.
+# Interesting that no other songs had a high enough correlation to be considered as significant.
+
+```
+
+
+**e.  Album similarity**
+
+```{r "Exploration_AlbumSimilarity", echo=FALSE, eval=TRUE}
+VennDiagram <- with(wrk.02_TextAnalysis_02 , qdap::trans_venn(text.var = text, grouping.var = CATMusicArtist, title.name="Album lyric similarity", legend.location = "topright"))
+
+```
+
+
+
+**f.  Song dissimilarity (agreement between lyrics)**
+
+```{r "Exploration_SongDisimilarity", echo=FALSE, eval=TRUE}
+#Dissimilarity statistics: Uses the distance function to calculate dissimilarity statistics by grouping variables.
+#Returns a matrix of dissimilarity values (the agreement between text).
+SongDendogram <- with(wrk.02_TextAnalysis_02,  qdap::Dissimilarity(text.var = text, grouping.var = list(CATMusicArtist, CATTrackName), method = "prop",
+              diag = FALSE, upper = FALSE, p = 2))
+fit <- hclust(SongDendogram)
+plot(fit)
+## draw dendrogram with red borders around the 3 clusters
+rect.hclust(fit, k=14, border=c("red", "blue", "green", "purple", "orange", "brown", "seagreen") )  
+
+```
+
+  
+
+&nbsp;
+    
+## Unsupervised Machine Learning
+  
+**Topic modelling: Structured Topic Modelling (STM)**
+
+# TOPIC MODEL (Structured Topic Model, STM)
+# inspiration reference: https://juliasilge.com/blog/sherlock-holmes-stm/
+
+#The stm() function take as its input a document-term matrix,
+#either as a sparse matrix or a dfm from quanteda.
+
+library(quanteda)
+library(stm)
+
+#You could use either of these objects (sherlock_dfm or sherlock_sparse)
+# as the input to stm(). For this analysis we will use the quanteda dfm object.
+
+#======================================================== >>
+
+# We need to select the number of topic "K" to train the model with
+# the stm includes lots of functions and support for choosing an appropriate
+#number of topics for the model.
+#Reference: http://thomaselliott.me/pdfs/earl/topic_modeling.html
+
+#Next step is the processing workhorse. 
+# This actually does the topic modeling. 
+#First, we can run stm with init.type=“Spectral” and K=0 
+# to have the algorithm calculate the appropriate number of topics itself.
+#This does not mean the number of topics it finds is the true number of topics, 
+#but it is a good place to start.
+
+#Spectral initialization uses a decomposition of the VxV word co-occurence matrix
+#to identify “anchor” words - words that belong to only one topic and therefore identify that topic.
+#The topic loadings of other words are then calculated based on these anchor words. 
+#This processes is deterministic, so that the same values are always arrived at with the same VxV matrix. 
+#The problem is that this process assumes that the VxV matrix is generated from the population of documents
+#(or, put another way, assumes it is generated from an infinite number of documents). 
+#Thus, the process does not behave well with infrequent words. The solution to this is to remove infrequent words,
+#though one should still be careful if you don’t have a lot of documents.
+#My guess is that I should use Spectral, but make sure it is robust to a series of LDA models (meaning that Spectral produces results as good as or better than LDA models).
+#I also suspect that I don’t have enough documents to trust the number of models to use.
+
+
+
+```{r "TopicModel_STM", echo=FALSE, eval=TRUE}
+
+tidy_MusicLyrics <- lineToken %>%
+  unnest_tokens(word, text) %>%
+  anti_join(stop_words) %>%
+
+  #filter(word != "")
+
+tidy_MusicLyrics %>% #check the word list and identify any further words to filter out above.
+  count(word, sort = TRUE)
+
+MusicLyrics_dfm <- tidy_MusicLyrics %>%
+  count(CATMusicArtist, word, sort = TRUE) %>%
+  cast_dfm(CATMusicArtist, word, n)
+
+
+STM_topic_model <- stm(MusicLyrics_dfm, K = 0, seed=12345,
+                       verbose = FALSE, init.type = "Spectral")
+
+#The above analysis identifies 32 topics, below are common words for each of these topics:
+labelTopics(STM_topic_model)
+
+#Below graphs how common each topic is:
+plot.STM(STM_topic_model,type ="summary", xlim = c(0, 0.1))
+
+#Calculating semantic coherance & exclusivity scored, find the harmonic mean.
+
+#plot exclusivity vs semantic coherence
+topicQuality(STM_topic_model$, documents = out$documents)
+
+
+#Topic modelling
+#stm, quanteda
+#fitting the model:
+#  unsupervised M learning
+#which words contribute to which topics
+#which topics contribute to which documents
+
+#beta matrix: what are the words which contribute to each topic
+#> plot the matrix, top 10 words in cluster
+
+#gamma matrix:
+#  how much did this document contribute to the topic?
+#  how likely is this document to belong to this topic
+
+
+STM_topic_model <- stm(MusicLyrics_dfm, K = 6, 
+                       seed=12345,
+                       verbose = FALSE, init.type = "Spectral")
+
+td_BetaMatrix <- tidy(STM_topic_model)
+
+td_BetaMatrix %>%
+  group_by(topic) %>%
+  top_n(10, beta) %>%
+  ungroup() %>%
+  mutate(topic = paste0("Topic ", topic),
+         term = reorder(term, beta)) %>%
+  ggplot(aes(term, beta, fill = as.factor(topic))) +
+  geom_col(alpha = 0.8, show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free_y") +
+  coord_flip() +
+  #scale_x_reordered() +
+  labs(x = NULL, y = expression(beta),
+       title = "Highest word probabilities for each topic",
+       subtitle = "Different words are associated with different topics")
+
+#Now let’s look at another kind of probability we get as output from topic modeling, 
+# the probability that each document is generated from each topic.
+td_GammaMatrix <- tidy(STM_topic_model, matrix = "gamma",                    
+                 document_names = rownames(MusicLyrics_dfm))
+
+ggplot(td_GammaMatrix, aes(gamma, fill = as.factor(topic))) +
+  geom_histogram(alpha = 0.8, show.legend = FALSE) +
+  facet_wrap(~ topic, ncol = 3) +
+  labs(title = "Distribution of document probabilities for each topic",
+       subtitle = "Each topic is associated with exactly 1 story",
+       y = "Number of stories", x = expression(gamma))
+
+#In this case, each short story is strongly associated with a single topic.
+#Topic modeling doesn’t always work out this way,
+#but I built a model here with a small number of documents (only 6) 
+#and a relatively large number of topics compared to the number of documents.
+#In any case, this is how we interpret these gamma probabilities; they tell us which topics are coming from which documents.
+
+# We can see some interesting things; there are shifts through the collection
+# as topic 3 stories come at the beginning and topic 5 stories come at the end. 
+#Topic 5 focuses on words that sound like spooky mysteries happening at night,
+#in houses with doors, and events that you see or hear, topic 1 is about lords, 
+#ladies, and wives, and topic 2 is about… GEESE. You can use each tab in the app 
+#to explore the topic modeling results in different ways.
+
+```

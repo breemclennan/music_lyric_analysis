@@ -646,8 +646,28 @@ pirateplot(formula =  SongSim_Repetition ~ CATMusicArtist, #Formula
            jitter.val = .1, #Turn on jitter to see the songs better
            cex.lab = 1, cex.names = .9) #Axis label size
 
-# === ven diagram
-VennDiagram <- with(wrk.02_TextAnalysis_02 , qdap::trans_venn(text, CATMusicArtist, legend.location = "topright"))
+# === ven diagram for Albums and Song dendogram
+VennDiagram <- with(wrk.02_TextAnalysis_02 , qdap::trans_venn(text.var = text, grouping.var = CATMusicArtist, title.name="Album lyric similarity", legend.location = "topright"))
+
+VennDiagram_song <- with(wrk.02_TextAnalysis_02 , qdap::trans_venn(text.var = text, grouping.var = CATTrackName, title.name="Song lyric similarity", legend.location = "topright"))
+
+#Dissimilarity statistics: Uses the distance function to calculate dissimilarity statistics by grouping variables.
+#Returns a matrix of dissimilarity values (the agreement between text).
+SongDendogram <- with(wrk.02_TextAnalysis_02,  qdap::Dissimilarity(text.var = text, grouping.var = list(CATMusicArtist, CATTrackName), method = "prop",
+              diag = FALSE, upper = FALSE, p = 2))
+fit <- hclust(SongDendogram)
+plot(fit)
+## draw dendrogram with red borders around the 3 clusters
+rect.hclust(fit, k=14, border=c("red", "blue", "green", "purple", "orange", "brown", "seagreen") )
+
+## Clustering: Dendrogram with p.values
+library(pvclust)
+wfm.mod <- with(wrk.02_TextAnalysis_02, wfm(text, list(CATMusicArtist, CATTrackName)))
+fit2 <- suppressMessages(pvclust(wfm.mod, method.hclust="ward",
+                                method.dist="euclidean"))
+plot(fit2)
+pvrect(fit2, alpha=.95)
+
 
 
 # ============= BI grams and TRI grams
@@ -701,6 +721,41 @@ t.G <- TriGrams %>%
 
 t.G 
 
+#========== BI-GRAM NETWORK
+
+centre_words <- c("hey","feel","gonna","people","yeah","love","light","time", "life")
+
+#centre_words <- c("i","you","us","we", "they")
+
+bigrams_separated <- BiGrams %>%
+  separate(ngram, c("word1", "word2"), sep = " ")
+
+library(tidytext)
+centre_bigrams <- bigrams_separated %>%
+  select(word1, word2, n) %>%
+  filter(word1 %in% centre_words) %>%
+  #inner_join(AFINN, by = c(word2 = "word")) %>%
+  #count(word1, word2, sort = TRUE) %>%
+  #mutate(contribution = n * score) %>%
+  #arrange(desc(abs(contribution))) %>%
+  group_by(word1) %>%
+  slice(seq_len(20)) %>%
+  #arrange(word1,desc(contribution)) %>%
+  ungroup()
+
+bigram_graph <- centre_bigrams %>%
+  graph_from_data_frame() #From `igraph`
+
+
+set.seed(2016)
+
+a <- grid::arrow(type = "closed", length = unit(.10, "inches"))
+
+ggraph(bigram_graph, layout = "fr") +
+  geom_edge_link() +
+  geom_node_point(color = "lightblue", size = 5) +
+  geom_node_text(aes(label = name), vjust = 1, hjust = 1) +
+  theme_void()
 
 #======= TIDY TEXT STM TOPIC MODELLING ============================
 
@@ -756,11 +811,16 @@ library(quanteda)
 library(stm)
 
 #pre-process the text. This involves removing stop words (common words as well as user specified stop words), stemming words (to remove suffixes), and other basic steps to make the text ready for processing.
-tidy_stemming_MusicLyrics <- textProcessor(tidy_MusicLyrics$word,meta= tidy_MusicLyrics, customstopwords = undesirable_words,
+tidy_stemming_MusicLyrics <- textProcessor(tidy_MusicLyrics$word, meta = tidy_MusicLyrics, customstopwords = undesirable_words,
                                            stem = TRUE)
 #prep the documents. In this step, I remove words that appear in less than 1 document, as well as words that appear in more than 60 articles. This helps remove some noise.
+num.docs <- length(tidy_stemming_MusicLyrics$documents)
+max.docs <- num.docs-2
 out <- prepDocuments(tidy_stemming_MusicLyrics$documents, tidy_stemming_MusicLyrics$vocab, tidy_stemming_MusicLyrics$meta,
-                     lower.thresh = 1,upper.thresh = 60)
+                     lower.thresh = 1,upper.thresh = max.docs)
+
+texts<-tidy_MusicLyrics$word[-tidy_stemming_MusicLyrics$docs.removed]
+
 
 MusicLyrics_dfm <- tidy_MusicLyrics %>%
   count(CATMusicArtist, word, sort = TRUE) %>%
@@ -798,21 +858,37 @@ MusicLyrics_sparse <- tidy_MusicLyrics %>%
 #My guess is that I should use Spectral, but make sure it is robust to a series of LDA models (meaning that Spectral produces results as good as or better than LDA models).
 #I also suspect that I don’t have enough documents to trust the number of models to use.
 
-STM_topic_model <- stm(MusicLyrics_dfm, K = 0, 
-                       seed=12345,
+STM_topic_model <- stm(MusicLyrics_dfm, K = 0, seed=12345,
                        verbose = FALSE, init.type = "Spectral")
+
 
 #The above analysis identifies 32 topics, below are common words for each of these topics:
 labelTopics(STM_topic_model)
 
 #Below graphs how common each topic is:
-plot.STM(STM_topic_model,type="summary", xlim=c(0,0.1))
+plot.STM(STM_topic_model,type ="summary", xlim = c(0, 0.1))
 
 #Calculating semantic coherance & exclusivity scored, find the harmonic mean.
 
 #plot exclusivity vs semantic coherence
-topicQuality(STM_topic_model, documents = out$documents)
+topicQuality(STM_topic_model$, documents = out$documents)
 #======================================================== <<
+
+
+#Topic modelling
+#stm, quanteda
+#fitting the model:
+#  unsupervised M learning
+#which words contribute to which topics
+#which topics contribute to which documents
+
+#beta matrix: what are the words which contribute to each topic
+#> plot the matrix, top 10 words in cluster
+
+#gamma matrix:
+#  how much did this document contribute to the topic?
+#  how likely is this document to belong to this topic
+
 
 STM_topic_model <- stm(MusicLyrics_dfm, K = 6, 
                        seed=12345,

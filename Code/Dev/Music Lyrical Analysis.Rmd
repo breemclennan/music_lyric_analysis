@@ -1597,6 +1597,23 @@ Learnings, gotchas, traps for young players
 
 
 Where to next, part 2
+
+There were a few elements in this analysis we could unpack further, such as:
+-
+-
+-
+
+As mentioned in the purpose and objective of this analysis, having a clear business problem to address goes a long way to creating useful, actionable insights, to assist the target audience. If there are more business problems to consider and unpack then it is likely we can look at part two of this analysis.
+
+<br>
+
+We'd love to receive your thoughts, queries and feedback on this analysis. Please feel free to reach out to Bree at bree_mclennan@outlook.com .
+<br><br> 
+Thanks for connecting and reading!
+
+Bree.
+
+
     
 &nbsp;
   

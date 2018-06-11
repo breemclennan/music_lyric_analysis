@@ -761,7 +761,7 @@ ggraph(bigram_graph, layout = "fr") +
 
 tidy_MusicLyrics <- lineToken %>%
   unnest_tokens(word, text) %>%
-  anti_join(stop_words) %>%
+  anti_join(stop_words) #%>%
 
   #filter(word != "")
 
@@ -871,7 +871,7 @@ plot.STM(STM_topic_model,type ="summary", xlim = c(0, 0.1))
 #Calculating semantic coherance & exclusivity scored, find the harmonic mean.
 
 #plot exclusivity vs semantic coherence
-topicQuality(STM_topic_model$, documents = out$documents)
+topicQuality(STM_topic_model, documents = out$documents)
 #======================================================== <<
 
 

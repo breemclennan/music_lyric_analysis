@@ -2,16 +2,15 @@
 title: "Music Lyrical Analysis. Unpacking musical preferences with R"
 author: "Bree McLennan (www.breemclennan.com)"
 date: "10 June 2018"
-output: 
-  html_document:
-    toc: true
-    toc_depth: 2
-    toc_float: true
-    theme: cerulean
-    highlight: haddock
-    df_print: paged
-    self_contained: yes
-    fig_caption: true
+output: html_document
+    #toc: true
+    #toc_depth: 2
+    #toc_float: true
+    #theme: cerulean
+    #highlight: haddock
+    #df_print: paged
+    #self_contained: yes
+    #fig_caption: true
 ---
 
 ```{r global_options, include=FALSE}
@@ -31,8 +30,6 @@ library(rprojroot)
 library(purrr) #reduce and map functions
 library(qdap)
 library(ggplot2) #visualizations
-library(gridExtra) 
-library(knitr) 
 library(kableExtra) # create a nicely formated HTML table
 library(formattable) # for the color_tile function
 
@@ -44,14 +41,40 @@ library(RWordPress)
 ########################################
 options(scipen = 10000)
 options(knitr.table.format = "html") 
-knitr::opts_chunk$set(echo = FALSE)
-knitr::opts_chunk$set(message = FALSE)
-knitr::opts_chunk$set(warning = FALSE)
+#opts_chunk$set(dev = 'pdf') #for plot rendering. Need to add fig.width and fig.height params to chunks
+opts_chunk$set(cache = FALSE, echo = FALSE, warning = FALSE, message = FALSE)
 
+#######################################
+# Global themes
+# ggplot2 custom theme settings
+theme_lyrics <- function(aticks = element_blank(),
+                         pgminor = element_blank(),
+                         lt = element_blank(),
+                         lp = "none")
+{
+  theme(plot.title = element_text(hjust = 0.5), #Center the title
+        axis.ticks = aticks, #Set axis ticks to on or off
+        panel.grid.minor = pgminor, #Turn the minor grid lines on or off
+        legend.title = lt, #Turn the legend title on or off
+        legend.position = lp) #Turn the legend on or off
+}
+
+#Customize the text tables for consistency using HTML formatting
+my_kable_styling <- function(dat, caption) {
+  kable(dat, "html", escape = FALSE, caption = caption) %>%
+    kable_styling(bootstrap_options = c("striped", "condensed", "bordered"),
+                  full_width = FALSE)
+}
+
+titles.format <- theme(plot.title = element_text(face = "bold", size = 13, color = 'grey50'),
+                       plot.subtitle = element_text(color = 'grey50'),
+                       axis.title = element_text(size = 9 , color='grey50'), 
+                       axis.text = element_text(size = 9, color = 'grey50'),
+                       plot.margin = unit(c(0.3,0.3,0.3,0.3), "cm"))
 
 ```
 
-```{r data_setup}
+```{r data_setup, include=FALSE }
 
 `%ni%` <- Negate(`%in%`)
 # Define a function that computes file paths relative to where root .git folder is located
@@ -63,6 +86,7 @@ image01_path <- F("Docs/ExploringMusicPart1.jpg")
 image02_path <- F("Docs/DataConsiderations_LyricSheets_01.jpg")
 image03_path <- F("Docs/DataConsiderations_LyricSheets_02.jpg")
 image04_path <- F("Docs/Exploration_AlbumWordCountGantt.jpeg")
+image05_path <- F("Data/Processed/SongSim_AllSongsJPG_RESIZE_v1.jpg") #Song Sim Poster
 
 # Read in ready made source datasets
 # SPOTIFY DATA
@@ -77,7 +101,7 @@ wrk.01_Data_Prep <- wrk.data %>%
        
 # QDAP CHECKS  ==========================
 qview(wrk.01_Data_Prep)   
-check_text(wrk.01_Data_Prep$text, file=F("Data/Raw/QDAPCheckText_wrk.01_Data_Prep.txt")) 
+check_text(wrk.01_Data_Prep$text, file = F("Data/Raw/QDAPCheckText_wrk.01_Data_Prep.txt")) 
 
 # Applying QDAP cleanup recommendations
 wrk.01_Data_Prep$text <- replace_number(wrk.01_Data_Prep$text, num.paste = TRUE, remove = FALSE)
@@ -86,17 +110,15 @@ wrk.01_Data_Prep$text <- comma_spacer(wrk.01_Data_Prep$text)
 wrk.01_Data_Prep$text <- clean(wrk.01_Data_Prep$text)
 wrk.01_Data_Prep$text <- scrubber(wrk.01_Data_Prep$text, fix.comma = TRUE, fix.space = TRUE)
 
-
 # Read in main text analysis dataset
 wrk.01_DataPrep_LyricsWithSpotify <- read_feather(F("Data/Processed/wrk.01_DataPrep_LyricsWithSpotify.feather"))
 
 ```
 
-```{r "CoverImage", echo=FALSE, out.width = "75%"}
+```{r "CoverImage", echo=FALSE, out.width = "80%"}
 # Render cover picture
 include_graphics(image01_path)
 ```
-
 
 &nbsp;
 
@@ -144,7 +166,7 @@ As we flow through this analysis I’m seeking to weave in my responses to four 
   1.	How will you acquire and structure the data?
   2.	How can we visualise this data to tell us a story and help us make meaningful sense of the data?
   3.	What are the important key words and n-gram constructs associated with each artist’s album?
-  4.	What are the sentiments (and polarities) of each song and album?
+  4.	What are the sentiments and emotional representations of each song and album?
   5.	What topics emerge from the albums? Can machine learning be useful here?
 
 &nbsp;
@@ -164,20 +186,18 @@ This project will be written in R, with the [repository link here](https://githu
     + e.	Additional data: Using the Spotify API
     + f.	Observing the specific and unique nature of music lyrics in a text analysis context
     + g.	Variable names and the source dataset	
-    + h.  Feature engineering
-    
+
     &nbsp;
     
   * **2.	Manual Data Exploration**
   
-    + a.  Creating tokens  
+    + a.  Creating tokens & Data Wrangling 
     + b.  Identifying vocal and instrumental songs
     + c.  Word counts by song & album
     + d.  Wordclouds
     + e.  Lexical diversity (vocabulary)
-    + f.  Lexical density (repetition)
-    + g.  song lyrics self-similarity matrices (SongSim) & repetition
-    + h.  Term Frequency Inverse Document Frequency (TF-IDF)
+    + f.  song lyrics self-similarity matrices (SongSim) & repetition
+    + g.  Term Frequency Inverse Document Frequency (TF-IDF)
     
     &nbsp;
     
@@ -206,21 +226,23 @@ This project will be written in R, with the [repository link here](https://githu
     
   &nbsp;
   
-  * **5.	References**
+  * **6.	References**
   
    &nbsp;
 
-## Data Considerations
+## 1. Data Considerations
 
 **Intellectual property & copyrights**
+
 Because we are working with copyrighted material in reference to music lyrics, the copyright belongs to the artists and songwriters who created the songs and the lyrics.
 
- &nbsp;
+&nbsp;
 
 **Artist and album selection**
+
 After much deliberation and consulting with friends and family, I decided to select 6 artists and an album from each of these artists. 
 
- &nbsp;
+&nbsp;
 
 +---------------+-------------------+---------------+-------------+--------------------------------------+---------------+---------------------------------------------------------+
 | Artist        | Album             | Release Year  | Genre       | Tracks                               |  Review Tags  |  Other Notes & Rationale for selection                  |
@@ -318,14 +340,16 @@ I made a conscious decision to download the lyrics for the selected albums, manu
 
 For the source dataset we’re creating, we want to maintain the “structural integrity” of the music lyrics as we import them into data frames. This means our dataset looks the same way the lyric sheet looks. We have rows for album title, rows for song titles, rows for each verse and each chorus.
 
-Why?
+**Why?**
 
-Music is all about patterns, sequences and time signatures. Lyrics are written differently to many other forms of written communication, lyrics are also interwoven with sound. It would be inappropriate at this point to treat the lyrics as one giant “word pool”, lets firstly observe the lyrics in as close to the original structure as they were written.
-How do we do this?
+Music is all about patterns, sequences and time signatures. Lyrics are written differently to many other forms of written communication. Lyrics are also interwoven with sound, else it would be just poetry or a short story. It would be inappropriate at this point to treat the lyrics as one giant “word pool”. We need to maintain hierarchial groupings and identify which lyrics belong with which artist and album. Let's firstly observe the lyrics in as close to the original structure as they were written.
 
-Let’s keep the lyric sheets in docx format for now and check the integrity of the style formats
+**How do we do this?**
+
+Let’s keep the lyric sheets in `.docx` format for now and check the integrity of the style formats.
 There’s magic in the little “¶” button on the paragraph menu pane in Microsoft Word. 
-For each lyric sheet we have, turn on paragraph marks and make the following adjustments:
+
+For each lyric sheet we have, turn on **paragraph marks** and make the following adjustments:
 
   * Configure styles for Heading 1, Heading 2, Heading 3, Normal body and spacing after paragraph
   * Heading 1 – Artist name
@@ -333,57 +357,72 @@ For each lyric sheet we have, turn on paragraph marks and make the following adj
   * Heading 3 – song title name
   * Song lyrics – Normal body
 
-Each verse and chorus separated by paragraph. Individual lines within verses and choruses separated with carriage return (Enter key).
+Each verse and chorus are separated by a paragraph. Individual lines within verses and choruses separated with carriage return (Enter key), with a single space at the end of each line.
 
-Between each style component, create separate by a single paragraph. Paragraphs will create new rows for our dataset, as will differentiating styles.
+Between each style component used, separate these with a single paragraph. Paragraphs will create new rows for our dataset, as will differentiating styles.
 
-```{r "DataConsideration_LyricSheet01", echo=FALSE, out.width = "50%"}
+Where a song is instrumental, use `"[Instrumental]"` as a consistent tag across all lyric sheets for ease of flagging these songs for filtering later.
+
+&nbsp;
+
+```{r "DataConsideration_LyricSheet01", echo=FALSE, out.width = "40%"}
 # Render lyric sheet setup example
 include_graphics(image02_path)
 ```
 
 &nbsp;
 
-Using the Officer package to read in the collection of word documents:
+We can use the `officer` and `qdapTools` packages to read in the collection of lyric sheet documents:
 
-```{r "ReadInWordDocument", echo=TRUE, eval=FALSE}
-# Working with word documents:
-# Read in each file and use doc summary to map styles used in document as music lyric components
-# Then apply some common hirarchial groupings: Artist, Album, track name and grouping
+```{r "ReadInWordDocument", echo=TRUE, eval=TRUE}
+# Working with word documents (docx):
+# Read in each file and use docx_summary() to map the styles used in each document as records in a dataframe.
+# Then apply some common hirarchial groupings: Artist, Album, Track Name, and add in verse line counters.
 library(officer)
 library(qdapTools)
+library(zoo)
 
 doc02 <- read_docx(F("Data/Raw/U2 - The Joshua Tree.docx"))
 raw.data02 <- docx_summary(doc02) %>%
   mutate(CATMusicArtist = "U2",
          CATMusicAlbum = "The Joshua Tree",
          CATTrackName = ifelse(style_name == "heading 3", text, "None"),
-         CATTrackName = na.locf(CATTrackName), #fill down track number
+         CATTrackName = zoo::na.locf(CATTrackName), #fill down track number
          style_name = ifelse(is.na(style_name), "body", style_name)
   ) %>%
   group_by(CATTrackName) %>%
-  mutate(NUMTrackLyricLineNumber = sequence(n()) - 1) #using minus 1 so we dont include the heading
+  mutate(NUMTrackLyricLineNumber = sequence(n()) - 1) #using minus 1 so we dont include the main heading
 
 ```
+&nbsp;
 
-As a data-frame these lyrics become:
+Our imported lyric sheet for **U2 - The Joshua Tree** has now become a nicely structured data frame. Here's an example of the first four records:
 
 &nbsp;
 
 ```{r "DataConsideration_LyricSheet02", echo=FALSE, out.width = "75%"}
 # Render lyric sheet result in dataframe
-include_graphics(image03_path)
+
+raw.data02 %>%
+  head(n = 4) %>%
+  kable("html", escape = FALSE, align = "c", caption = "Raw dataset for: U2 - The Joshua Tree (first 4 records)") %>%
+  kable_styling(bootstrap_options = c("striped", "condensed", "bordered"), full_width = FALSE)
+
+#include_graphics(image03_path)
 ```
 
 &nbsp;
 
-Using QDAP to clean up and prepare the lyric data 
+We will repeat the above steps for the other Artists and Albums in our selection and append the datasets together.
+
+Next, we will perform some data checks and cleanup using the `QDAP` package. 
 
 ```{r "QDAPChecks", echo=TRUE, eval=FALSE}
 
 # Using the dataset which contains all raw imported lyric sheets from the previous step:
 # Tidy up the track name variable for when we need to use this as a merge key
 # Identify the songs which are instrumental. We will filter these out for this analysis.
+
 wrk.01_Data_Prep <- wrk.data %>%
   mutate(BINTrackIsInstrumental = ifelse(style_name == "body" & trimws(text) == "[Instrumental]", 1, 0)) %>%
   mutate(KEYTrackName = toupper(trimws(CATTrackName)))
@@ -405,16 +444,14 @@ wrk.01_Data_Prep$text <- scrubber(wrk.01_Data_Prep$text, fix.comma = TRUE, fix.s
 
 **Additional data: Using the Spotify API**
 
-I thought it would be useful to explore alternative sources of data to complement the lyrical dataset we just created. In my exploration, I came across the spotifyr package [with more details here](https://github.com/charlie86/spotifyr). After setting up a [Spotify developers account](https://beta.developer.spotify.com/dashboard/) I was able to obtain the necessary “client ID” and “client secret” tokens, and set these as environment variables to use in the spotifyr functions.
+I thought it would be useful to explore alternative sources of data to complement the lyrical dataset we just created. In my exploration, I came across the `spotifyr` package [with more details here](https://github.com/charlie86/spotifyr). After setting up a [Spotify developers account](https://beta.developer.spotify.com/dashboard/) I was able to obtain the necessary **“client ID”** and **“client secret”** tokens, and set these as environment variables to use in the spotifyr functions.
 
 &nbsp;
-
-
 ```{r "SampleSpotifyAPICode", echo=TRUE, eval=FALSE}
 #devtools::install_github('charlie86/spotifyr')
 #install.packages('spotifyr')
 library(spotifyr)
-# https://github.com/charlie86/spotifyr
+# Reference: https://github.com/charlie86/spotifyr
 
 # app name "MusicLyricAnalysis1"
 Sys.setenv(SPOTIFY_CLIENT_ID = "ADD TOKEN HERE")
@@ -430,9 +467,9 @@ spotify_df_LedZeppelin <- get_artist_audio_features('Led Zeppelin',access_token)
 spotify_df_KillswitchEngage <- get_artist_audio_features('Killswitch Engage',access_token)
 spotify_df_IronMaiden <- get_artist_audio_features('Iron Maiden',access_token)
 
-spotify_U2_filtered <- filter(spotify_df_U2, album_name == "The Joshua Tree (Deluxe)") #we got extra live songs
+spotify_U2_filtered <- filter(spotify_df_U2, album_name == "The Joshua Tree (Deluxe)") #we have extra live songs
 spotify_DaftPunk_filtered <- filter(spotify_df_DaftPunk, album_name == "Discovery")
-spotify_EltonJohn_filtered <- filter(spotify_df_EltonJohn, album_name == "Honky Chateau") #no results
+spotify_EltonJohn_filtered <- filter(spotify_df_EltonJohn, album_name == "Honky Chateau") #no results found
 spotify_LedZeppelin_filtered <- filter(spotify_df_LedZeppelin, album_name == "Physical Graffiti")
 spotify_KillswitchEngage_filtered <- filter(spotify_df_KillswitchEngage, album_name == "Alive or Just Breathing [Topshelf Edition]")
 spotify_IronMaiden_filtered <- filter(spotify_df_IronMaiden, album_name == "Powerslave (1998 Remastered Edition)")
@@ -457,16 +494,18 @@ write_feather(wrk.01_DataPrep_LyricsWithSpotify, F("Data/Processed/wrk.01_DataPr
 
 Inspecting the Spotify data for the collection of albums:
 
-&nbsp;
 ```{r "CheckSpotifyDataset", echo=TRUE, eval=TRUE}
 # Check over the dataset
 glimpse(raw.SpotifyArtistAlbumTrackData)
 
 ```
 
-&nbsp;
 
-After attempting to extract the desired albums from the selected artists, I discovered that not all albums or songs from the albums were available on spotify. For example, Elton John’s Honky Chateau was not available to extract, instead only single tracks were available via a best-of album. For U2’s Joshua Tree, the original release album is not available, only the deluxe edition which comes with extra live performance tracks. Similar situation for Iron Maiden’s Powerslave.
+After attempting to extract the desired albums from the selected artists, I discovered that not all albums or songs from the albums were available on spotify. For example, **Elton John’s Honky Chateau** was not available to extract, instead only single tracks were available via a best-of album. For **U2’s The Joshua Tree**, the original release album is not available, only the deluxe edition which comes with extra live performance tracks. Similar situation for **Iron Maiden’s Powerslave**.
+
+With this information, I decided that the Spotify data is simply a _"nice to have"_ and will not be entirely useful to this analysis. I would very much have liked for it to cover all artists, all albums and all songs in the collection. 
+
+We will leave the spotify variables in the merged dataset, but we won't use them in this analysis.
 
 &nbsp;
 
@@ -484,18 +523,17 @@ glimpse(select(checkSpotify_NotMatchingSource,album_name, track_name ))
 
 A few things we can observe and acknowledge so far:
 
-  *	Some songs will be instrumental. I’ve flagged these songs with “[Instrumental]” text flags. We can filter these out of our analysis and re-use these in subsequent analysis – perhaps for signal or beat detection analysis!
-  * Each lyric “line” is meaningful in the flow of a song. Each line can be linked to subsequent lines via rhyming and context. We expect the lyric sheets to loosely resemble poetry and we expect a higher instance of repetition, because music is full of patterns (unless we’re dealing with some kind of random jam session or jazz genres!)
-  *	The number of songs will vary per artist and album. Some albums will have more songs than others. We need to be mindful of any analysis utilising word counts or averages
-  * In reality: The lyrics are interwoven with an audio track. This analysis is like staring at words in segregated silence. With the audio track interwoven this adds the dimensions of time series, verbal intonation and speech/verbal patterns, and emotional sentiment , all of which lead us to interpret the lyrics differently to how we would analysing lyrics in isolation.
+*	Some songs will be instrumental. The raw lyric sheets will only contain `“[Instrumental]”` for instrumental songs. We can filter these out of our analysis and re-use these in subsequent analysis. Perhaps for signal or beat detection analysis!
+* Each lyric “line” is meaningful in the flow of a song. Each line can be linked to subsequent lines via rhyming and context. We expect the lyric sheets to loosely resemble poetry and we expect a higher instance of repetition, because music is full of patterns (unless we’re dealing with some kind of random jam session or jazz genres!)
+*	The number of songs will vary per artist and album. Some albums will have more songs than others. We need to be mindful of any analysis utilising word counts or averages
+* In reality: The lyrics are interwoven with an audio track. This analysis is like staring at words in segregated silence. With the audio track interwoven this adds the dimensions of time series, verbal intonation and speech/verbal patterns, and emotional sentiment, all of which lead us to interpret the lyrics differently to how we would analysing lyrics in isolation.
 
 &nbsp;
 
-** Variable names and the source dataset **
+**Variable names and the source dataset**
 	
-Here is a summary of the source dataset we’ll use for this analysis. It’s one row per album track. All lyrics for each track are contained within a single variable TXTAllTrackLyrics. The end of each lyric line is signified with “<br>’
+Here is a summary of the source dataset we’ll use for this analysis. It is one row per album track. All lyrics for each track are contained within a single variable **TXTAllTrackLyrics**. The end of each lyric line is signified with `“<br>"` tag.
 
-&nbsp;
 
 ```{r "VariableNamesSourceDataset", echo=TRUE, eval=TRUE}
 
@@ -516,27 +554,40 @@ wrk.02_TextAnalysis_02 <- wrk.02_TextAnalysis_01 %>%
 #Summary
 glimpse(wrk.02_TextAnalysis_02)
 
-#Identify any specific/customisable words we wish to eliminate later on
-undesirable_words <- c("chorus", "lyrics", "verse")
 
 ```
+
+From this dataset, the most important variables we will be using frequently will be:
+
+* **text** & **TXTAllTrackLyrics**, usage will depend on the character string structure we need for text analysis functions.
+* **CATMusicArtist**, our main grouping variable
+* **CATMusicAlbum**, our secondary grouping variable
+* **CATTrackName**, most granular grouping variable
+* **BINTrackIsInstrumental**, for filtering out songs with no lyrics
+
 &nbsp;
 
-** Feature engineering **
 
-#######################
+## 2. Manual Data Exploration
 
-&nbsp;
+**a. Creating tokens & Data Wrangling**
 
-## Manual Data Exploration
+Our dataset is almost ready for exploration. There's a few remaining data wrangling steps to complete:
 
-**a.  Creating tokens  **
+  1. Manually identify any _"undesirable words"_ in the context of lyrics. Sometimes we see markers in the lyric sheets like "chorus", "repeat x3" etc.
+  2. We have the option to remove stop words at this point, although I would like to leave them in for intial exploration and remove them when we begin more detailed text analysis.
+  3. Create lyric line tokens, split the lyrics into individual verses.
+  4. Create lyric word tokens, split the lyrics into individual words.
+  5. Create numeric counter of how many words per song, per album & artist.
 
 &nbsp;
 
 
 ```{r "Exploration_Tokens", echo=TRUE, eval=TRUE}
 library(tidytext)
+
+#Identify any specific/customisable words we wish to eliminate later on
+undesirable_words <- c("chorus", "lyrics", "verse")
 
 #Create lyric verse tokens using tidytext [dataset will be one row per verse]
 lineToken <- wrk.02_TextAnalysis_02 %>%
@@ -557,11 +608,14 @@ wrk.02_TextAnalysis_03_WordCount <- wordToken %>%
   group_by(CATMusicArtist,CATMusicAlbum, CATTrackName) %>%
   summarise(num_words = n()) %>%
   arrange(desc(num_words)) 
+
 ```
 
 &nbsp;
 
-**b.  Identifying vocal and instrumental songs**
+**b. Identifying vocal and instrumental songs**
+
+We need to identify which songs are instrumental so we can exclude them for this analysis. Not surprisingly, more than half of the songs on **Daft Punk's Discovery** are instrumental.
 
 &nbsp;
 
@@ -582,16 +636,29 @@ instrumental <- filter(wrk.02_TextAnalysis_03_SongPerArtist, str_detect(TXTAllTr
 
 instrumental %>%
   select(CATMusicArtist, CATMusicAlbum, CATTrackName) %>%
-  kable("html", escape = FALSE, align = "c", caption = "Instrumental Songs") %>%
+  kable("html", escape = FALSE, align = "c", caption = "Instrumental Songs to Exclude from Analysis") %>%
   kable_styling(bootstrap_options = 
                   c("striped", "condensed", "bordered"), full_width = FALSE)
 ```
 
 &nbsp;
 
+**c. Word counts by song & album**
 
-**c.  Word counts by song & album**
+With our dataset now ready for exploration, let's inspect these questions:
+
+* How many songs with lyrics are available to work with?
+* What are the raw word counts for these songs?
+
+We have **59** songs to work with, and **Iron Maiden's Rime of the Ancient Mariner** has a very large word count at **650 words**, significantly higher than any other song in our dataset. 
+
+Could this song's lyrics skew any subsequent analysis we will be performing?
+
+&nbsp;
 ```{r "Exploration_SongWordCountTotal", echo=FALSE, eval=TRUE}
+
+#Summarise our source dataset
+glimpse(wrk.02_TextAnalysis_03_WordCount)
 
 # Songs by the highest unique word count
 wrk.02_TextAnalysis_03_WordCount %>%
@@ -604,36 +671,49 @@ wrk.02_TextAnalysis_03_WordCount %>%
                 full_width = FALSE)
 
 ```
+&nbsp;
 
-This table doesn't give us clarity of seeing how the songs are grouped to their respective albums. We also need to be careful about using total word counts. Considering Daft Punk’s Discovery, many of the songs on this album are instrumental songs. Let's try another visualisation.
+While this table shows us the raw individual word counts for each song, it doesn't clearly illustrate the Artist-Album groupings and total word counts for Artist-Album. Some questions here:
 
-```{r "Exploration_AlbumWordCountGantt", echo=FALSE, eval=TRUE, out.width = "100%"}
+* How many songs do we have for each Artist & Album?
+* What is the "wordiest" album in the collection? Could this be used as a basic indicator of the balance between story telling and sound engineering?
+
+We must be careful here about using total word counts. Considering Daft Punk’s Discovery had many songs excluded due to them being instrumental, there are less songs available to contribute to an overall word count.
+
+&nbsp;
+```{r "Exploration_AlbumWordCountGantt", echo=FALSE, eval=TRUE, out.width = "100%", fig.width=14, fig.height=8}
 
 #TOTAL WORD COUNT: USING QDAP
-#wrk.02_TextAnalysis_03_QDAPWordCount <- with(wrk.02_TextAnalysis_02, qdap::gantt_rep(rm.var = CATMusicArtist, text.var = #TXTAllTrackLyrics, grouping.var = CATTrackName ))
+wrk.02_TextAnalysis_03_QDAPWordCount <- with(wrk.02_TextAnalysis_02, qdap::gantt_rep(rm.var = CATMusicArtist, text.var = TXTAllTrackLyrics, grouping.var = CATTrackName ))
 
-#gantt_wrap(wrk.02_TextAnalysis_03_QDAPWordCount,
-#           plot.var = "CATMusicArtist", fill.var = "CATTrackName",
-#           border.color = "black",
-#           legend.position = "bottom",
-#           major.line.freq = 250,
-#           ncol = 2,
-#           size = 7,
-#           border.size = 4,
-#           border.width = .4,
-#           title = "Total word count for each artist & album") 
+gantt_wrap(wrk.02_TextAnalysis_03_QDAPWordCount,
+           plot.var = "CATMusicArtist", fill.var = "CATTrackName",
+           border.color = "black",
+           legend.position = "bottom",
+           major.line.freq = 250,
+           ncol = 2,
+           size = 7,
+           border.size = 4,
+           border.width = .4,
+           title = "Total word count for each artist & album, segmented by song") 
 
-include_graphics(image04_path)
+#include_graphics(image04_path)
 
 ```
-
 
 &nbsp;
 
 
-**d.  Wordclouds**
+**d. Wordclouds**
 
-```{r "Exploration_WordClouds", echo=FALSE, eval=TRUE}
+We can visualise the raw word counts using word clouds. The intention here is to get some initial, basic insight as to the common words for each artist & album. 
+
+We do need to be careful with the usage and context of these visualisations here because we know some songs were designed for repetition and certain words will dominate for this reason.
+
+For this section we will use the `wordcloud` package and create some word clouds.
+
+&nbsp;
+```{r "Exploration_WordClouds_00", echo=FALSE, eval=TRUE, fig.width=5, fig.height=5}
 
 # Most common words in each album
 wrk.02_TextAnalysis_03_CommonWordsAlbum <- wordToken %>%
@@ -641,56 +721,114 @@ wrk.02_TextAnalysis_03_CommonWordsAlbum <- wordToken %>%
   count(CATMusicArtist, CATMusicAlbum, word, sort = TRUE) %>%
   ungroup()
 
+library(wordcloud2) #needs htmlwidgets
+library(wordcloud) #static images
+```
+
+**Daft Punk - Discovery**
+```{r "Exploration_WordClouds_01", echo=FALSE, eval=TRUE, fig.width=5, fig.height=5}
 # WORD CLOUDS - for each album
-library(wordcloud2)
 #==== DAFT PUNK
 albums_wordcloud_DaftPunk <- wrk.02_TextAnalysis_03_CommonWordsAlbum %>%
 as.data.frame(albums_wordcloud) %>%
   filter(CATMusicArtist == "Daft Punk") %>%
   select(word, n) 
-wordcloud2(albums_wordcloud_DaftPunk[1:88, ], size = .5) #wont render if rownum set to more than whats in the dataset
 
+##wordcloud2(albums_wordcloud_DaftPunk[1:88, ], size = .5) #wont render if rownum set to more than whats in the dataset
+wordcloud(albums_wordcloud_DaftPunk$word, albums_wordcloud_DaftPunk$n, min.freq=1, random.order=FALSE, max.words = 100, 
+          colors=brewer.pal(8, "Dark2"), use.r.layout=TRUE)
+```
+
+**U2 - The Joshua Tree**
+```{r "Exploration_WordClouds_02", echo=FALSE, eval=TRUE, fig.width=5, fig.height=5}
 #==== U2
 albums_wordcloud_U2 <- wrk.02_TextAnalysis_03_CommonWordsAlbum %>%
   as.data.frame(albums_wordcloud) %>%
   filter(CATMusicArtist == "U2") %>%
   select(word, n) 
-wordcloud2(albums_wordcloud_U2[1:100, ], size = .5)
+#wordcloud2(albums_wordcloud_U2[1:100, ], size = .5)
+wordcloud(albums_wordcloud_U2$word, albums_wordcloud_U2$n, min.freq=1, random.order=FALSE, max.words = 100,
+          colors=brewer.pal(8, "Dark2"), use.r.layout=TRUE)
 
+```
+
+**Elton John - Honky Chateau**
+```{r "Exploration_WordClouds_03", echo=FALSE, eval=TRUE, fig.width=5, fig.height=5}
 #==== Elton John
 albums_wordcloud_Elton <- wrk.02_TextAnalysis_03_CommonWordsAlbum %>%
   as.data.frame(albums_wordcloud) %>%
   filter(CATMusicArtist == "Elton John") %>%
   select(word, n) 
-wordcloud2(albums_wordcloud_Elton[1:100, ], size = .5)
+#wordcloud2(albums_wordcloud_Elton[1:100, ], size = .5)
+wordcloud(albums_wordcloud_Elton$word, albums_wordcloud_Elton$n, min.freq=1, random.order=FALSE, max.words = 100,
+          colors=brewer.pal(8, "Dark2"), use.r.layout=TRUE)
 
+```
+
+**Led Zeppelin**
+```{r "Exploration_WordClouds_04", echo=FALSE, eval=TRUE, fig.width=5, fig.height=5}
 #==== Led Zeppelin
 albums_wordcloud_LedZep <- wrk.02_TextAnalysis_03_CommonWordsAlbum %>%
   as.data.frame(albums_wordcloud) %>%
   filter(CATMusicArtist == "Led Zeppelin") %>%
   select(word, n) 
-wordcloud2(albums_wordcloud_LedZep[1:100, ], size = .5)
+#wordcloud2(albums_wordcloud_LedZep[1:100, ], size = .5)
+wordcloud(albums_wordcloud_LedZep$word, albums_wordcloud_LedZep$n, min.freq=1, random.order=FALSE, max.words = 100,
+          colors=brewer.pal(8, "Dark2"), use.r.layout=TRUE)
+
+```
+
+**Killswitch Engage**
+```{r "Exploration_WordClouds_05", echo=FALSE, eval=TRUE, fig.width=5, fig.height=5}
 
 #==== Killswitch Engage
 albums_wordcloud_KsE <- wrk.02_TextAnalysis_03_CommonWordsAlbum %>%
   as.data.frame(albums_wordcloud) %>%
   filter(CATMusicArtist == "Killswitch Engage") %>%
   select(word, n) 
-wordcloud2(albums_wordcloud_KsE[1:100, ], size = .5)
+#wordcloud2(albums_wordcloud_KsE[1:100, ], size = .5)
+wordcloud(albums_wordcloud_KsE$word, albums_wordcloud_KsE$n,min.freq=1, random.order=FALSE, max.words = 100,
+          colors=brewer.pal(8, "Dark2"), use.r.layout=TRUE)
 
+```
+
+**Iron Maiden**
+```{r "Exploration_WordClouds_06", echo=FALSE, eval=TRUE, fig.width=5, fig.height=5}
 #==== Iron Maiden
 albums_wordcloud_IronMaiden <- wrk.02_TextAnalysis_03_CommonWordsAlbum %>%
   as.data.frame(albums_wordcloud) %>%
   filter(CATMusicArtist == "Iron Maiden") %>%
   select(word, n) 
-wordcloud2(albums_wordcloud_IronMaiden[1:100, ], size = .5)
+#wordcloud2(albums_wordcloud_IronMaiden[1:100, ], size = .5)
+wordcloud(albums_wordcloud_IronMaiden$word, albums_wordcloud_IronMaiden$n, min.freq=1, random.order=FALSE, max.words = 100,
+          colors=brewer.pal(8, "Dark2"), use.r.layout=TRUE)
 
 ```
 
+```{r "Exploration_WordClouds_RenderAll", echo=FALSE, eval=TRUE, fig.width=5, fig.height=5, fig.align='left'}
+#library(wordcloud)
+#par(mfrow = c(6, 1))
+```
 
-e.  Lexical diversity (vocabulary)
+&nbsp;
 
-```{r "Exploration_LexicalDiversity", echo=FALSE, eval=TRUE}
+**e. Lexical diversity (vocabulary)**
+
+Time to explore the depth of each song's lyrical vocabulary, we will refer to this as _"lexical diversity"_.
+
+A question at this point is: Could the larger the vocabulary for a song (and therefore artist) be an indicator of great story telling?
+
+In calculating the lexical diversity we will:
+
+* Remove stop words
+* Work with a dataset which is one row per word (un-nested, token by word)
+* Group by Artist & Album
+* Count by distinct words used in each song
+* Visualise using a pirateplot box plot, from the `yarrr` package
+
+&nbsp;
+
+```{r "Exploration_LexicalDiversity", echo=FALSE, eval=TRUE, fig.width=10, fig.height=7}
 # Let's observe the lexical diversity, or vocabulary, of each of the song lyrics.
 # Assumption: the more diverse the lyrics, the larger the vocabulary
 # Using a continuous dependent variable "word_count", as a function of the categorical independent variable, album.
@@ -704,14 +842,17 @@ LexicalDensity_01 <- wordToken %>%
   distinct() %>% #Summarise to one record per song, distinct word count
   ungroup()
 
+LexicalDensity_01 %>%
+  arrange(desc(word_count)) %>%
+  kable("html", escape = FALSE, align = "c", caption = "Lexical (Vocabulary) Diversity for Each Artist, Album and Song") %>%
+  kable_styling(bootstrap_options = c("striped", "condensed", "bordered"), full_width = FALSE)
+
 library(yarrr)
 #Lets draw the plot
-#par(mar = c(5.1, 4.1, 4.1, 2.1)) # Set the margin on all sides to 2
-#par(mfrow = c(1, 1))
 pirateplot(formula =  word_count ~ CATMusicArtist, #Formula
            data = LexicalDensity_01, #Data frame
-           xlab = NULL, ylab = "Song Distinct Word Count", #Axis labels
-           main = "Lexical Diversity Per Artist & Album", #Plot title
+           xlab = NULL, ylab = "Distinct Word Count for Each Song", #Axis labels
+           main = "Lexical (Vocabulary) Diversity for Each Artist & Album", #Plot title
            pal = "espresso", #Color scheme
            back.col = gray(.98), # Add light gray background
            gl.col = "gray", # Gray gridlines
@@ -730,66 +871,212 @@ pirateplot(formula =  word_count ~ CATMusicArtist, #Formula
            cex.lab = 1, cex.names = .9) #Axis label size
 ```
 
+It becomes immediately obvious, **Iron Maiden's Powerslave** contains a range of more and less lexically dense songs.
+Iron Maiden's song **"Rime of the Ancient Mariner"** is by far an outlier in this visualisation, at **167** distinct words.
 
-**f.  Lexical density (repetition)**
+On the lower end of the scale, **Daft Punk's Discovery** and **Killswitch Engage's Alive or Just Breathing** appear to have a smaller vocabulary. Some human experiential insights from these musical compositions suggest that these albums are very engineered for audio and sound experience. **Daft Punk's Discovery** could be described as a dance record, while **Killswitch Engage's Alive or Just Breathing** may have been designed to get the most out of vocally _"growling"_ lyrics and so careful selection of words to achieve this purpose could be what we are observing in a lower vocabulary range.
+
+In the mid-range of the lexical diversity we see Elton John, Led Zeppelin and U2, perhaps this is where the balance between audio experience and story telling can be observed?
+
+&nbsp;
 
 
-**g.  song lyrics self-similarity matrices (SongSim) & repetition**
+**f.  Song lyrics self-similarity matrices (SongSim) & repetition**
 
---------
-describe the process of building the matrices for all songs
+We have observed the lexical diversity for our collection of songs. Let's now take a look at lyrical repetition.
+
+Measuring and observing lyrical (or word) repetition is very relevant for this analysis as our context is music. Repetition can be observed in both instrumental waveforms and in lyrical structure. Ever had a song stuck in your head, repeating over and over? 
+
+The challenge here is to identify and use a visualisation which neatly and clearly descibes repetition for our collection of songs.
+
+Enter package `songsim`.
+
+SongSim uses self-similarity matrices to visualise patterns of repetition in text. Each word (lyric) of a song forms a row and a column of the matrix. The cell at position (x, y) is filled in if the x-th and y-th words of the song are the same. [For a more technical explanation check out the package author's site here](https://colinmorris.github.io/SongSim/#/about/intro).
+
+A self-similarity matrix is used to answer the question "which parts of this text thing are alike?".
+
+To get started, let's setup our process flow for SongSim and take a look at Led Zeppelin's Kashmir.
+
+&nbsp;
+```{r "Exploration_SongSim_KashmirInteractive", echo=FALSE, eval=TRUE, fig.width=6, fig.height=6}
+library(songsim)
+library(heatmaply)
+# Subset out source dataset by Artist, Song, and keep lyrics only
+SongSim_LedZepKashmir <- wrk.01_DataPrep_LyricsWithSpotify %>%
+  filter(CATMusicArtist == "Led Zeppelin" & CATTrackName == "Kashmir") %>%
+  filter(style_name == "body") %>%
+  select(text)
+
+# Write out our subset to a text file. This will be used as input for SongSim
+# This will write to root level project folder - we can move it to a more appropriate location later.
+fileConn <- file("SongSim_LedZepKashmir.txt")
+writeLines(SongSim_LedZepKashmir$text, fileConn)
+close(fileConn)
+
+resLedZepKashmir <- songsim(path = (F("Data/Raw/SongSim_LedZepKashmir.txt")),interactiveMode = FALSE, colorfulMode = TRUE,
+                            mainTitle = "Led Zeppelin - Kashmir",
+                            plotOptions = c(width = 4, height = 4))
+
+```
+&nbsp;
+
+Most of Kashmir has very little repetition. As we progress down the black diagonal line to the bottom right of the square we begin to see some pattern "blobs" coloured in blue, purple and pink, this is attributed to the repeated lyrics:
+
+> Ooh, yeah-yeah, ooh, yeah-yeah, when I'm down... 
+
+> Ooh, yeah-yeah, ooh, yeah-yeah, well I'm down, so down 
+
+> Ooh, my baby, ooh, my baby, let me take you there 
 
 
-```{r "Exploration_SongSim_KashmirInteractive", echo=FALSE, out.width = "75%"}
-# Render interactive SongSim for Kashmir
-#include_graphics(image03_path)
+> Let me take you there. Let me take you there  
+
+The "Colorful" mode of the SongSim matrix plot assigns a unique color to each repeated word (words appearing only once are black). When there are several repeated themes, this can make it easier to distinguish them.
+
+```{r "Exploration_SongSim_DataSetup", include=FALSE }
+library(songsim)
+library(heatmaply)
+library(glue)
+SongSim_All_01 <- wrk.01_DataPrep_LyricsWithSpotify %>%
+  filter(style_name == "body" & text != "[Instrumental]") %>%
+  mutate(CATMusicAlbum = as.factor(CATMusicAlbum),
+         CATMusicArtist = as.factor(CATMusicArtist),
+         CATTrackName = as.factor(CATTrackName)) %>%
+  mutate(CATArtistAlbumTrack = paste(CATMusicArtist, CATMusicAlbum, CATTrackName, sep = " - ")) %>%
+  select(CATArtistAlbumTrack, text)
+
+SongList <- tapply(SongSim_All_01$text, SongSim_All_01$CATArtistAlbumTrack, matrix, byrow = TRUE)
+
+RenderSongSim <- lapply(names(SongList),
+                        function(x, SongList) songsim(path = paste((F("Data/Raw")),"/", x ,".txt", sep = ""),
+                                                      colorfulMode = TRUE,
+                                                      interactiveMode = FALSE, 
+                                                      #singleColor = "blue",
+                                                      plotOptions = c(width = 4, height = 4),
+                                                      mainTitle = x),
+                                                      SongList)
+
+# What is the repetition level for the songs?
+distinctSongList <- SongSim_All_01 %>%
+  group_by(CATArtistAlbumTrack) %>%
+  distinct(CATArtistAlbumTrack) %>%
+  ungroup()
+distinctSongList <- as.data.frame(distinctSongList)
+
+#Unpack the songsim big list
+length(RenderSongSim)
+str(RenderSongSim[[1]])
+SongSim_Repetition <- RenderSongSim %>% map_dbl("repetitiveness")
+df <- as.data.frame(SongSim_Repetition)
+
+#Dataset with repetitiveness measure and the artist+album+track column
+Song_Repetition_DF <- data.frame(bind_cols(distinctSongList, df))
+Song_Repetition_DF <- Song_Repetition_DF %>%
+  mutate(CATArtistAlbumTrack_split = CATArtistAlbumTrack) %>%
+  mutate(SongSim_Repetition = as.numeric(SongSim_Repetition)) %>%
+  separate(CATArtistAlbumTrack_split, c("CATMusicArtist", "CATMusicAlbum", "CATTrackName"), " - ", extra = "merge")
+
+```
+&nbsp;
+The SongSim matrices also come with some handy parameters:
+
+* `$ songMat` - this is the matrix structure for the SongSim plot
+* `$ repetitiveness` - this quantifies how repetitive a song is. It is a simple mean of the upper triangle of the matrix. The larger the value, the more repetitive the song.
+
+We can create songsim matrices for our collection of songs and then compare `repetitiveness` scores as a method of assessing lyrical repetition (or lyrical density).
+
+&nbsp;
+```{r "Exploration_SongSim_Repetition", echo=FALSE, eval=TRUE, fig.width=10, fig.height=7}
+
+Song_Repetition_DF %>%
+  arrange(desc(SongSim_Repetition)) %>%
+  kable("html", escape = FALSE, align = "c", caption = "SongSim Lyrical Repetitiveness for Each Song by Artist") %>%
+  kable_styling(bootstrap_options = c("striped", "condensed", "bordered"), full_width = FALSE)
+
+
+library(yarrr)
+pirateplot(formula =  SongSim_Repetition ~ CATMusicArtist, #Formula
+           data = Song_Repetition_DF, #Data frame
+           xlab = "All Songs", ylab = "Lyrical Repetitiveness (Song Sim)", #Axis labels
+           main = "SongSim Repetitiveness for Each Song by Artist", #Plot title
+           pal = "espresso", #Color scheme
+           back.col = gray(.98), # Add light gray background
+           gl.col = "gray", # Gray gridlines
+           gl.lwd = c(.75, 0),
+           inf.f.o = .6, # Turn up inf filling
+           inf.disp = "rect", # Wrap inference around bean
+           bean.b.o = .4, # Turn down bean borders
+           quant = c(.25, .75), # 25th and 75th quantiles
+           quant.col = "black", # Black quantile lines
+           point.o = .2, #Points
+           avg.line.o = 1, #Turn on the Average/Mean line
+           theme = 2, #Theme
+           point.pch = 16, #Point `pch` type
+           point.cex = 1.5, #Point size
+           jitter.val = .1, #Turn on jitter to see the songs better
+           cex.lab = 1, cex.names = .9) #Axis label size
 ```
 
-```{r "Exploration_SongSim_Repetition", echo=FALSE, out.width = "75%"}
-# Plot the lexical density / repetition pirate plot
-```
+Is it so surprising to see **Daft Punk's Discovery** with the highest average lyrical repetitiveness? Interesting it also has the widest range of repetitiveness.
+
+Curious to observe **U2's The Joshua Tree** has the lowest average and the smallest range of lyrical repetitiveness. The grouping of songs appear to be very consistent in terms of lyrical repetition.
 
 
-```{r "Exploration_SongSim_Poster", echo=FALSE, out.width = "75%"}
-# Render SongSim Poster or link on github
-#include_graphics(image03_path)
-```
+So what do all of these songs look like as SongSim matrices? We have an opportunity here to create some _"data art"_.
+
+[Click here to see the SongSim poster we created for the collection of songs in this analysis](https://github.com/breemclennan/music_lyric_analysis/blob/master/Data/Processed/SongSim_AllSongsJPG_RESIZE.jpg).
+
+&nbsp;
+
+Some notable mentions from the "SongSim Matrix Poster":
+
+* Entire patterned square: Daft Punk's "Harder, Better, Faster, Stronger" is a great example of visualised pop music. The chorus is basically the entire song. 
+* Small checkerboard-like patterns: Most of Elton John's songs only have a small number of words within a repetition.
+* Verses and Bridges "gutter" patterns: Most of Iron Maiden's and U2's songs appear to follow an `into - verse - chorus - verse - chorus - outro` pattern
+* Broken Diagonal patterns: Most of Killswitch Engages's songs suggest a variation on the chorus or another major repeating section. Most of their songs are structured with `verse - chorus - verse - chorus`, but at the very end, some words moved around or swapped out.
+* Hybrid of "gutter" and "broken diagonal"" patterns: Very much Led Zeppelin.
 
 
-**h.  Term Frequency Inverse Document Frequency (TF-IDF)**
+This has certainly unconvered some very interesting insights about how the songs in the collection are structured, and maybe even shed some light on the Artist's preferences toward lyrical song writing.
 
-# What are the highest tf-idf words across these 6 music albums? The td-idf statistic identifies words that are
-# important to a document in a collection of documents [in our case, Music Albums]. We'll see which words are important
-# in one music album, compared to the others.
-# how important is this word/song lyric to this document/music track & album, compared to other words in the collection of albums?
 
-#TF is "term frequency". IDF is "inverse document frequency",
-# which attaches a lower weight for commonly used words and a higher weight for 
-# words that are not used much in a collection of text. When you combine TF and IDF,
-# a term's importance is adjusted for how rarely it is used. The assumption behind TF-IDF 
-# is that terms that appear more frequently in a document should be given a higher weight,
-# unless it also appears in many documents. The formula can be summarized below:
-# - Term Frequency (TF): Number of times a term occurs in a document
-# - Document Frequency (DF): Number of documents that contain each word
-# - Inverse Document Frequency (IDF) = 1/DF
-# - TF-IDF = TF * IDF
-#The IDF of any term is therefore a higher number for words that occur in fewer of the documents in the collection. 
+&nbsp;
 
-# Find the TF-IDF within the albums
-# We expect the albums to differ in terms of subject/topic, content and sentiment, we therefore expect the frequency of words to differ 
-# between albums, We can use TF-IDF metric to calculate these differences.
+**g.  Term Frequency Inverse Document Frequency (TF-IDF)**
 
-```{r "Exploration_TFIDF", echo=FALSE, eval=TRUE}
+Let's now address quantifying how important various lyrics (words) are in a song with respect to an album.
+
+The **Term Frequency - Inverse Document Frequency** (TF-IDF for short), is a measure of:
+
+Term Frequency * Inverse Document Frequency
+
+* The Term Frequency, the number of times a word is counted in a document
+
+**Multiplied by**
+
+* 1/DF, or 1 divided by the number of documents that contain each word
+
+With the TF and IDF combined, a word's (or a lyric's) importance is adjusted for how rarely it is used. The assumption with TF-IDF is that words that appear more frequently in a document (or a song) should be given a higher weighting, _unless_ the word also appears in many documents (or songs). 
+
+For our analysis we can use TF-IDF to identify which words are important to each of the albums in the collection, and compared across albums. We expect the albums to differ in terms of subject/topic, content and sentiment, we therefore expect the frequency of words to differ between albums, the TF-IDF metric will highlight these differences.
+
+So let's take a look at word importance through the lense of TF-IDF
+
+
+```{r "Exploration_TFIDF", include=FALSE}
 
 tidy_MusicLyrics <- lineToken %>%
   unnest_tokens(word, text) %>%
-  anti_join(stop_words) %>%
+  anti_join(stop_words)
 
   #filter(word != "")
 
 tidy_MusicLyrics %>% #check the word list and identify any further words to filter out above.
   count(word, sort = TRUE)
 
+```
+
+```{r "Exploration_TFIDF_Plots", echo=FALSE, eval=TRUE, fig.width=10, fig.height=7}
 MusicLyrics_tf_idf <- tidy_MusicLyrics %>%
   count(CATMusicArtist, word, sort = TRUE) %>%
   bind_tf_idf(word, CATMusicArtist, n) %>%
@@ -799,6 +1086,10 @@ MusicLyrics_tf_idf <- tidy_MusicLyrics %>%
   ungroup()
 
 MusicLyrics_tf_idf %>%
+  kable("html", escape = FALSE, align = "c", caption = "TF, IDF and TF-IDF scores for collection of songs and albums") %>%
+  kable_styling(bootstrap_options = c("striped", "condensed", "bordered"), full_width = FALSE)
+
+MusicLyrics_tf_idf %>%
   mutate(word = reorder(word, tf_idf)) %>%
   ggplot(aes(word, tf_idf, fill = CATMusicArtist)) +
   geom_col(alpha = 0.8, show.legend = FALSE) +
@@ -806,42 +1097,51 @@ MusicLyrics_tf_idf %>%
   #scale_x_reordered() +
   coord_flip() +
   theme(strip.text=element_text(size=11)) +
-  labs(x = NULL, y = "tf-idf",
-       title = "Highest tf-idf words in collection of Music Albums",
+  labs(x = NULL, y = "TF-IDF Score",
+       title = "Highest TF-IDF words in collection of Music Albums",
        subtitle = "Individual songs focus on different themes and narrative elements")
 
 
 ```
+&nbsp;
 
-#We see lots of familiar lyric words here.
-#as well as specific narrative elements for individual songs, like faster-harder-stronger,
-# rocket, minutes-midnight, numbered-days, kashmir, red-hill-mining-town.
-#🐦 Exploring tf-idf can be helpful before training topic models
+We see lots of familiar lyric words here which we can trace clearly back to individual songs. There are also specific narrative elements for individual songs, like **Daft Punk's** "Harder, Better, Faster, Stronger", we can see almost the entire chorus structure (we do know it's highly repetitive!). True to the nature of the TF-IDF metric, the words to this song are really only found in this song and very unlikely elsewhere.
+
+Same goes for "rocket" in Elton John's Rocket Man, "(two) minutes (to) midnight" in Iron Maiden, "numbered days" in Killswitch Engage, "Kashmir" in Led Zeppelin, and "red hill mining town" in U2. These are all curiously exclusive to the songs they are found in.
+
+While this really doesn't tell us anything new, this can still be useful insight and information to be aware of prior to designing and training any models and exploring topic modelling.
+
+Some questions we can ask before heading into sentiment analysis and machine learning:
+
+1. Do we need to perform more data preparation?
+2. Stemming: do we need to remove suffixes from words and reduce down to the common word origin? Is it appropriate?
+3. Lemmatization: do we need to remove inflectional endings of words, and return the base or dictionary form of a word (which is known as the lemma)? 
+4. Advanved concept in sentiment analysis: Is it appropriate to simply replace some certain words with more frequently used synonyms (semantically similar peers) and/or hypernyms (common parents)? This would be used to address lexicon word matching challenges, between the words in the text versus the lexicon used.
+5. Do we need to construct our own lexicon for the sentiment analysis?
+
+&nbsp;
 
 
-##Sentiment Analysis & Natural Language Processing (NLP)
-  
+## 3. Sentiment Analysis & Natural Language Processing (NLP)
+
+Sentiment analysis is a type of text mining which aims to determine the opinion and subjectivity of its content. When applied to song lyrics, the results can be representative of the artist's attitude as well as their influences.
+
+Natural Language Processing (NLP) is another methodology used in mining text. It tries to decipher the ambiguities in written language by tokenization, clustering, extracting entity and word relationships, and using algorithms to identify themes and quantify subjective information. This analysis in earlier sections touched on the basics of NLP, via exploring the lexical complexity of song lyrics (word frequencies, lexical diversity "vocabulary" and lexical density "repetition").
+
+&nbsp;
+
 **a.  NRC Emotional Sentiment**
 
-# Do we need to perform more Data Preparation?
-# It may be the case that you need a few more data preparation steps. Here are three techniques to consider before performing sentiment analysis:
-# Stemming: generally refers to removing suffixes from words to get the common origin
-# Lemmatization: reducing inflected (or sometimes derived) words to their word stem, base or root form
-#Word replacement: replace words with more frequently used synonyms
-#An advanced concept in sentiment analysis is that of synonym (semantically similar peer)
-#and hypernym (a common parent) replacement. These are words that are more frequently used than
-#the related word in the lyric, and actually do appear in a lexicon, thus giving a higher match percentage. 
-#There is not enough space in this tutorial to address additional data preparation, 
-#but it's definitely something to consider!
-#Challenge: do a little research on lexicons and how they are created. Is there already one that exists that is better suited to musical lyrics? If you're really interested, maybe consider what it would take to build your own lexicon. 
-#What is the difference between classifier-based sentiment analysis and lexicon-based sentiment analysis?
-#==================
-#we can consider stemming/root words here, incase we want to explore matching words in lexicons
-#syuzhet pkg
-#Calls the NRC sentiment dictionary to calculate the presence of 
-#eight different emotions and their corresponding valence in a text file.
+There are different methods which can be used for sentiment analysis. For this analysis we will explore our collection of songs using a predefined lexical dictionary (lexicon) named `NRC`.
 
-```{r "Exploration_NRCSentiment", echo=FALSE, eval=TRUE}
+The NRC lexicon assigns words into one or more of ten categories: positive, negative, anger, anticipation, disgust, fear, joy, sadness, surprise, and trust.
+
+We will use the `tidytext` package and call in the `NRC` lexicon by using the `get_sentiments()` function when creating our data frame.
+
+
+Let's observe how the NRC lexicon triages our song lyric words into the emotional sentiments.
+
+```{r "Exploration_NRCSentiment", echo=FALSE, eval=TRUE, fig.width=10, fig.height=10}
 #METHOD 1: USING TIDY TEXT
 SongSentiment_TidyText_NRC <- wordToken %>%
   anti_join(stop_words) %>% 
@@ -876,6 +1176,15 @@ SongSentiment_TidyText_NRC %>%
   ggtitle("NRC Sentiment by Artist & Album") +
   coord_flip()
 
+```
+&nbsp;
+
+This is a very dense visualisation, difficult to distinguise any clear patterns.
+
+Let's summarise this down to word counts by emotional sentiment.
+
+```{r "Exploration_NRCSentiment_Summary", echo=FALSE, eval=TRUE, fig.width=7, fig.height=5}
+
 #SongSentiment_TidyText_NRC
 wordToken %>%
   anti_join(stop_words) %>% 
@@ -895,11 +1204,25 @@ wordToken %>%
   coord_flip()
 ```
 
+So how do these album's make us feel when we listen to them?
+
+I have always suspected **Daft Punk's Discovery** to be jovial and energetic. I am glad to see anticipation, joy and trust rate highly for this album.
+
+Equally for **Killswitch Engage's Alive or Just Breathing**, this album tells stories with much sadness, anger and fear. Not very surprising these emotions rate highly for this album.
 
 
-**b.  NGrams, bi-grams & tri-grams**
+&nbsp;
 
-```{r "Exploration_BiGrams_TriGrams", echo=FALSE, eval=TRUE}
+**b. NGrams, bi-grams & tri-grams**
+
+Earlier in this analysis we explored single word (or unigram) frequency counts. This section is dedicated to exploring what precedes and follows the most common words we have identified in our collection of songs.
+
+We have the option at this point to remove stop words and undesirable words before calculating the bi-grams and tri-grams. For this piece, only the undesirable words have been removed. It would be interesting to observe the "direction" of the song lyrics, are songs written as one person toward another, a group of people, us versus them, collective "we", directive "you". Let's take a look!
+
+&nbsp;
+
+```{r "Exploration_BiGrams", echo=FALSE, eval=TRUE, fig.width=10, fig.height=7}
+#REF: https://www.datacamp.com/community/tutorials/sentiment-analysis-R#prepwork
 
  BiGrams <- lineToken %>%
   unnest_tokens(ngram, line, token = "ngrams", n = 2) %>%  #Break the lyrics into individual words
@@ -926,13 +1249,17 @@ b.G <- BiGrams %>%
   ggplot(aes(x = reorder(ngram, n, sum), n, fill = CATMusicArtist)) +
   geom_col(show.legend = FALSE) +
   facet_wrap(~ CATMusicArtist, scales = "free") +
-  ylab("Most Frequent bi-Grams") +
+  ylab("Most Frequent Bi-Grams") +
   xlab('Bi-grams') +
+  ggtitle("Bi-Grams for each Artist & Album") +
   coord_flip() 
   
 
 b.G 
+```
 
+
+```{r "Exploration_TriGrams", echo=FALSE, eval=TRUE, fig.width=10, fig.height=7}
 t.G <- TriGrams %>%
   group_by(CATMusicArtist) %>%
   mutate(ngram = reorder(ngram, n, sum)) %>%
@@ -944,24 +1271,48 @@ t.G <- TriGrams %>%
   facet_wrap(~ CATMusicArtist, scales = "free") +
   ylab("Most Frequent Tri-Grams") +
   xlab('Tri-grams') +
+  ggtitle("Tri-Grams for each Artist & Album") +
   coord_flip() 
 
 t.G 
 
 
 ```
+&nbsp;
+
+The lasting "sentiments" from obseving these bi-grams and tri-grams:
+
+* Daft Punk - The lyrical repetitiveness is very obvious, strongest of all the artists. Ngram structure points toward "being in the moment" and self-enjoyment.
+* Elton John - Less ngram frequency, with a common thread of thankfulness ("thank") and chill ("mellow")
+* Iron Maiden - Strong themes of returning to a communal "village" and anticipating "midnight"
+* Killswitch Engage - Written from the experiences of the first person ("i am", "me in") and observing the passing of "time"
+* Led Zeppelin - The writer's observations of relationships with people ("you didn't", "hey mama", "love")
+* U2 - The writer's observations of life journeys, observations with people ("haven't found", "bullet the blue", "you give") and foreign places ("streets")
+
+&nbsp;
 
 
-**c.  Bi-gram network analysis**
+**c. Bi-gram network analysis**
 
-```{r "Exploration_BiGrams_Network", echo=FALSE, eval=TRUE}
+From our Bi-Gram constructs we can create a network graph using the `ggraph` and `igraph` packages. We can arrange words into connected nodes, with selected "centring words" at the centres.
+
+From our earlier inspection of unigram word frequencies, the following high-frequency "centering words" have been selected
+
+`"hey","feel","gonna","people","yeah","love","light","time", "life"`
+
+Our dataset will be grouped up, to represent all songs, for all artists and albums.
+
+
+&nbsp;
+
+```{r "Exploration_BiGrams_Network", echo=FALSE, eval=TRUE, fig.width=7, fig.height=7}
 centre_words <- c("hey","feel","gonna","people","yeah","love","light","time", "life")
-
-#centre_words <- c("i","you","us","we", "they")
 
 bigrams_separated <- BiGrams %>%
   separate(ngram, c("word1", "word2"), sep = " ")
 
+library(ggraph)
+library(igraph)
 library(tidytext)
 centre_bigrams <- bigrams_separated %>%
   select(word1, word2, n) %>%
@@ -981,46 +1332,46 @@ ggraph(bigram_graph, layout = "fr") +
   geom_edge_link() +
   geom_node_point(color = "lightblue", size = 5) +
   geom_node_text(aes(label = name), vjust = 1, hjust = 1) +
+  ggtitle("Bi-Gram Network for All Songs") +
   theme_void()
 ```
 
 
+This is just a simple network graph to demonstrate the various methods we can use to visualise our song lyric data.
+
+For any songwriter's out there, perhaps this could be useful in identifying lyric constructs.
+
+
+&nbsp;
 
 
 **d.  Pair-wise comparisons**
 
-```{r "Exploration_PairWiseCompare", echo=FALSE, eval=TRUE}
+Which songs are similar to each other in lyrical content? We can explore this by finding the pairwise correlation of lyric (word) frequencies within each song, using the `pairwise_cor()` function from the `widyr` package.
 
-# Which albums are similar to each other in text content? We can explore this by finding
-# the pairwise correlation of word frequencies within each newsgroup, using the pairwise_cor()
-# function from the widyr package
+
+We will remove stop words for this analysis, to allow us to observe more meaningful results.
+
+&nbsp;
+
+```{r "Exploration_PairWiseCompare", echo=FALSE, eval=TRUE, fig.width=7, fig.height=4}
 
 library(widyr)
-
-album_cors <- wrk.02_TextAnalysis_03_CommonWordsAlbum %>%
-  pairwise_cor(CATMusicArtist, word, n, sort = TRUE)
-
-album_cors
-
-#Lets now filter on stronger correlations with the albums and visualise in a network
 library(ggraph)
 library(igraph)
-set.seed(1234)
 
-album_cors %>%
-  filter(correlation > .4) %>%
-  graph_from_data_frame() %>%
-  ggraph(layout = "fr") +
-  geom_edge_link(aes(alpha = correlation, width = correlation)) +
-  geom_node_point(size = 6, color = "lightblue") +
-  geom_node_text(aes(label = name), repel = TRUE) +
-  theme_void()
-# It seems these albums don't correlate strongly! Maybe we can try at the song level?
+# Most common words in each song
+wrk.02_TextAnalysis_03_CommonWordsSong <- wordToken %>%
+  anti_join(stop_words) %>% # remove stop words, allow us to see some more meaningful results
+  count(CATTrackName, word, sort = TRUE) %>%
+  ungroup()
 
 song_cors <- wrk.02_TextAnalysis_03_CommonWordsSong %>%
   pairwise_cor(CATTrackName, word, n, sort = TRUE)
 
-song_cors
+song_cors %>%
+  kable("html", escape = FALSE, align = "c", caption = "Pairwise Correlation - Song Links by Words Used") %>%
+  kable_styling(bootstrap_options = c("striped", "condensed", "bordered"), full_width = FALSE)
 
 set.seed(4321)
 
@@ -1031,89 +1382,114 @@ song_cors %>%
   geom_edge_link(aes(alpha = correlation, width = correlation)) +
   geom_node_point(size = 6, color = "lightblue") +
   geom_node_text(aes(label = name), repel = TRUE) +
+  ggtitle("Pairwise Correlation Plot - Song Links by Words Used") +
   theme_void()
-# Curious, Elton John's Mona Lisa and Led Zeppelin's Down by the Seaside have a connection with a correlation greater than 0.4.
-# Interesting that no other songs had a high enough correlation to be considered as significant.
 
 ```
 
+Well this is curious, **Elton John's Mona Lisa and Mad Hatters** and **Led Zeppelin's Down by the Seaside** have a connection with a correlation greater than 0.4. Does this mean they are similar songs?
+
+Interesting that no other songs had a high enough correlation to be considered as significant.
+
+
+&nbsp;
 
 **e.  Album similarity**
 
-```{r "Exploration_AlbumSimilarity", echo=FALSE, eval=TRUE}
+Using the `QDAP` package we have access to a function called `trans_venn()`. Since we just observed pairwise correlations between songs, let's take a look at similarity between albums, visualised as a venn diagram.
+
+
+```{r "Exploration_AlbumSimilarity", echo=FALSE, eval=TRUE, fig.width=10, fig.height=5}
 VennDiagram <- with(wrk.02_TextAnalysis_02 , qdap::trans_venn(text.var = text, grouping.var = CATMusicArtist, title.name="Album lyric similarity", legend.location = "topright"))
 
 ```
 
+It appears **U2's The Joshua Tree** is a versatile linking centroid in this venn diagram. Can the other albums realistically be "linked" together via The Joshua Tree?
 
+
+&nbsp;
 
 **f.  Song dissimilarity (agreement between lyrics)**
 
-```{r "Exploration_SongDisimilarity", echo=FALSE, eval=TRUE}
-#Dissimilarity statistics: Uses the distance function to calculate dissimilarity statistics by grouping variables.
-#Returns a matrix of dissimilarity values (the agreement between text).
+Just like the album similarity we calculated in the previous section, we can do something similar for songs. Still using the `QDAP` package, we can use the `Dissimilarity()` function. We can perform dissimilarity statistics, using the distance function to calculate dissimilarity statistics by grouping variables.
+
+The `Dissimilarity()` function will return a matrix of dissimilarity values, which is the agreement between text, or song. We will plot this matrix as a dendogram and identify some potential clusters.
+
+&nbsp;
+
+```{r "Exploration_SongDisimilarity", echo=FALSE, eval=TRUE, fig.width=15, fig.height=15}
+
 SongDendogram <- with(wrk.02_TextAnalysis_02,  qdap::Dissimilarity(text.var = text, grouping.var = list(CATMusicArtist, CATTrackName), method = "prop",
               diag = FALSE, upper = FALSE, p = 2))
 fit <- hclust(SongDendogram)
 plot(fit)
 ## draw dendrogram with red borders around the 3 clusters
-rect.hclust(fit, k=14, border=c("red", "blue", "green", "purple", "orange", "brown", "seagreen") )  
+rect.hclust(fit, k = 14, border = c("red", "blue", "green", "purple", "orange", "brown", "seagreen") )  
 
 ```
 
-  
+This dendogram offers us a very alternative view of how similar and different the individual songs in the collection are.
 
+  
 &nbsp;
     
-## Unsupervised Machine Learning
+## 4. Unsupervised Machine Learning
   
-**Topic modelling: Structured Topic Modelling (STM)**
+**a. Topic modelling: Structured Topic Modelling (STM)**
 
-# TOPIC MODEL (Structured Topic Model, STM)
-# inspiration reference: https://juliasilge.com/blog/sherlock-holmes-stm/
+Topic modeling is a method for unsupervised classification of documents, similar to clustering on numeric data, which finds natural groups of items even when we’re not sure what we’re looking for or what our target is.
+
+Can we identify any meaningful groups or themes in our collection of songs?
+
+For this piece, we will use Structured Topic Modelling (STM) and make use of the packages `quanteda` and `stm`.
+
+
+One of the drawbacks of STM is the need to select the number of topics "K" to train the model with. Fortunately, the `stm` package comes with  lots of functions and support for choosing an appropriate number of topics for the model.
+
+
+&nbsp;
+
+```{r "TopicModel_STM", echo=FALSE, eval=TRUE}
+
+#TOPIC MODEL (Structured Topic Model, STM)
+#inspiration reference: https://juliasilge.com/blog/sherlock-holmes-stm/
 
 #The stm() function take as its input a document-term matrix,
 #either as a sparse matrix or a dfm from quanteda.
 
+#Reference: http://thomaselliott.me/pdfs/earl/topic_modeling.html
+
+# Next step is the processing workhorse. 
+#  This actually does the topic modeling. 
+# First, we can run stm with init.type=“Spectral” and K=0 
+#  to have the algorithm calculate the appropriate number of topics itself.
+# This does not mean the number of topics it finds is the true number of topics, 
+# but it is a good place to start.
+# 
+# Spectral initialization uses a decomposition of the VxV word co-occurence matrix
+# to identify “anchor” words - words that belong to only one topic and therefore identify that topic.
+# The topic loadings of other words are then calculated based on these anchor words. 
+# This processes is deterministic, so that the same values are always arrived at with the same VxV matrix. 
+# The problem is that this process assumes that the VxV matrix is generated from the population of documents
+# (or, put another way, assumes it is generated from an infinite number of documents). 
+# Thus, the process does not behave well with infrequent words. The solution to this is to remove infrequent words,
+# though one should still be careful if you don’t have a lot of documents.
+# My guess is that I should use Spectral, but make sure it is robust to a series of LDA models (meaning that Spectral produces results as good as or better than LDA models).
+# I also suspect that I don’t have enough documents to trust the number of models to use.
+
 library(quanteda)
 library(stm)
 
-#You could use either of these objects (sherlock_dfm or sherlock_sparse)
-# as the input to stm(). For this analysis we will use the quanteda dfm object.
-
-#======================================================== >>
-
-# We need to select the number of topic "K" to train the model with
-# the stm includes lots of functions and support for choosing an appropriate
-#number of topics for the model.
-#Reference: http://thomaselliott.me/pdfs/earl/topic_modeling.html
-
-#Next step is the processing workhorse. 
-# This actually does the topic modeling. 
-#First, we can run stm with init.type=“Spectral” and K=0 
-# to have the algorithm calculate the appropriate number of topics itself.
-#This does not mean the number of topics it finds is the true number of topics, 
-#but it is a good place to start.
-
-#Spectral initialization uses a decomposition of the VxV word co-occurence matrix
-#to identify “anchor” words - words that belong to only one topic and therefore identify that topic.
-#The topic loadings of other words are then calculated based on these anchor words. 
-#This processes is deterministic, so that the same values are always arrived at with the same VxV matrix. 
-#The problem is that this process assumes that the VxV matrix is generated from the population of documents
-#(or, put another way, assumes it is generated from an infinite number of documents). 
-#Thus, the process does not behave well with infrequent words. The solution to this is to remove infrequent words,
-#though one should still be careful if you don’t have a lot of documents.
-#My guess is that I should use Spectral, but make sure it is robust to a series of LDA models (meaning that Spectral produces results as good as or better than LDA models).
-#I also suspect that I don’t have enough documents to trust the number of models to use.
+You could use either of these objects (sherlock_dfm or sherlock_sparse)
+ as the input to stm(). For this analysis we will use the quanteda dfm object.
 
 
-
-```{r "TopicModel_STM", echo=FALSE, eval=TRUE}
+library(quanteda)
+library(stm)
 
 tidy_MusicLyrics <- lineToken %>%
   unnest_tokens(word, text) %>%
-  anti_join(stop_words) %>%
-
+  anti_join(stop_words)
   #filter(word != "")
 
 tidy_MusicLyrics %>% #check the word list and identify any further words to filter out above.
@@ -1124,6 +1500,20 @@ MusicLyrics_dfm <- tidy_MusicLyrics %>%
   cast_dfm(CATMusicArtist, word, n)
 
 
+#pre-process the text. This involves removing stop words (common words as well as user specified stop words), stemming words (to remove suffixes), and other basic steps to make the text ready for processing.
+tidy_stemming_MusicLyrics <- textProcessor(tidy_MusicLyrics$word, meta = tidy_MusicLyrics, customstopwords = undesirable_words,
+                                           stem = TRUE)
+#prep the documents. In this step, I remove words that appear in less than 1 document, as well as words that appear in more than 60 articles. This helps remove some noise.
+num.docs <- length(tidy_stemming_MusicLyrics$documents)
+max.docs <- num.docs-2
+out <- prepDocuments(tidy_stemming_MusicLyrics$documents, tidy_stemming_MusicLyrics$vocab, tidy_stemming_MusicLyrics$meta,
+                     lower.thresh = 1,upper.thresh = max.docs)
+
+# Check how many documents we have
+texts <- tidy_MusicLyrics$word[-tidy_stemming_MusicLyrics$docs.removed]
+
+
+# Train the model with 0 clusters K defined. Lets observe:
 STM_topic_model <- stm(MusicLyrics_dfm, K = 0, seed=12345,
                        verbose = FALSE, init.type = "Spectral")
 
@@ -1131,13 +1521,11 @@ STM_topic_model <- stm(MusicLyrics_dfm, K = 0, seed=12345,
 labelTopics(STM_topic_model)
 
 #Below graphs how common each topic is:
-plot.STM(STM_topic_model,type ="summary", xlim = c(0, 0.1))
+plot.STM(STM_topic_model,type = "summary", xlim = c(0, 0.1))
 
-#Calculating semantic coherance & exclusivity scored, find the harmonic mean.
 
 #plot exclusivity vs semantic coherence
-topicQuality(STM_topic_model$, documents = out$documents)
-
+topicQuality(STM_topic_model, documents = out$documents)
 
 #Topic modelling
 #stm, quanteda
@@ -1154,9 +1542,7 @@ topicQuality(STM_topic_model$, documents = out$documents)
 #  how likely is this document to belong to this topic
 
 
-STM_topic_model <- stm(MusicLyrics_dfm, K = 6, 
-                       seed=12345,
-                       verbose = FALSE, init.type = "Spectral")
+STM_topic_model <- stm(MusicLyrics_dfm, K = 6, seed=12345, verbose = FALSE, init.type = "Spectral")
 
 td_BetaMatrix <- tidy(STM_topic_model)
 
@@ -1201,3 +1587,46 @@ ggplot(td_GammaMatrix, aes(gamma, fill = as.factor(topic))) +
 #to explore the topic modeling results in different ways.
 
 ```
+&nbsp;
+
+## 5.	Findings & Learnings
+  
+Findings
+
+Learnings, gotchas, traps for young players
+
+
+Where to next, part 2
+    
+&nbsp;
+  
+## 6.	References
+
+Many hours have been spent researching approaches for designing and writing this analysis. Here’s some items I’d like to share
+Inspirations for this piece
+TV series “It might get loud” with The Edge (U2), Jimmy Page (Led Zeppelin), Jack White (The White Stripes)
+Game: Audiosurf (visualising sound, beat detection algorithms and digital signal processing)
+
+Text mining, NLP and Machine Learning with Music Lyrics
+Prince analysis
+https://www.datacamp.com/community/tutorials/R-nlp-machine-learning
+https://www.datacamp.com/community/tutorials/sentiment-analysis-R
+The Ramones
+http://r-blog.salvaggio.net/?p=521
+Rick and Morty
+http://tamaszilagyi.com/blog/a-tidy-text-analysis-of-rick-and-morty/
+50 Years of Pop Music Lyrics
+https://github.com/walkerkq/musiclyrics
+Radiohead & Using the Spotify API
+http://www.rcharlie.com/post/fitter-happier/
+https://github.com/charlie86/spotifyr
+https://developer.spotify.com/web-api/object-model/#audio-features-object
+http://rcharlie.net/sentify/
+
+Alternative sentiment analysis: Using the “gloom” index to find depressing songs
+http://blog.revolutionanalytics.com/2017/02/finding-radioheads-most-depressing-song-with-r.html
+http://www.everydayanalytics.ca/2013/06/radiohead-lyrics-data-visualization-and-content-analysis.html
+
+Alternative visualisations: Visualising songs as matrix structures and find repetitions
+R Package song sim: http://giorasimchoni.com/2017/10/16/2017-10-16-repeat-yourself-the-songsim-package/
+

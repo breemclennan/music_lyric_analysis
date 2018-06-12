@@ -15,6 +15,8 @@ output: html_document
 
 ```{r global_options, include=FALSE}
 ## insert libraries here
+devtools::install_github("rstudio/rsconnect")
+library(rsconnect)
 library(dplyr)
 library(knitr) # for dynamic reporting
 library(stringr)
@@ -1615,7 +1617,7 @@ Observing the results from the beta matrix, the topics, and music artist influen
 Returning to our guiding questions:
 
 **Can we make meaningful sense of the data?**
-Yes! Across the selected 6 music albums and 59 individual songs we identified:
+Yes! Across the selected 6 music albums and 59 individual songs identified:
 
 * Each song is uniquely different to the next, as we saw in the SongSim matrices, pair-wise correlations and song similarity dendogram.
 * Each album, and collection of songs within the album do suggest common overarching themes, as we saw in NRC emotional sentiments.
@@ -1650,7 +1652,7 @@ Given this analysis is all about music, we only covered one aspect in this analy
 &nbsp;
 
 
-We'd love to receive your thoughts, queries and feedback on this analysis. Please feel free to reach out to Bree at bree_mclennan@outlook.com.
+I'd love to receive your thoughts, queries and feedback on this analysis. Please feel free to reach out to Bree at bree_mclennan@outlook.com.
 
 &nbsp;
 
@@ -1673,11 +1675,18 @@ Many hours have been spent researching approaches for designing and writing this
 **Text mining, NLP and Machine Learning with Music Lyrics**
 
 [Prince analysis - NLP](https://www.datacamp.com/community/tutorials/R-nlp-machine-learning)
+
 [Prince analysis - Sentments](https://www.datacamp.com/community/tutorials/sentiment-analysis-R)
+
 [The Ramones](http://r-blog.salvaggio.net/?p=521)
+
 [Rick and Morty](http://tamaszilagyi.com/blog/a-tidy-text-analysis-of-rick-and-morty/)
+
 [50 Years of Pop Music Lyrics](https://github.com/walkerkq/musiclyrics)
+
 [Radiohead & Using the Spotify API](http://www.rcharlie.com/post/fitter-happier/)
+
 [Alternative sentiment analysis: Using the “gloom” index to find depressing songs](http://blog.revolutionanalytics.com/2017/02/finding-radioheads-most-depressing-song-with-r.html)
+
 [Alternative visualisations: Visualising songs as matrix structures and find repetitions](http://giorasimchoni.com/2017/10/16/2017-10-16-repeat-yourself-the-songsim-package/)
 

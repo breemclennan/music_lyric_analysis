@@ -13,6 +13,21 @@ output: html_document
     #fig_caption: true
 ---
 
+```{r todo_list, include=FALSE}
+# TODOS for next update:
+# Narrative, watch out for the usage of I and we
+# Ngrams: Bi and Tri grams. "time has come" 10, "has come" 6, in a better ngram analysis, parts are not recounted
+#         recounting the parts skews this type of analysis
+#         tidytext ngrams have this shortcoming, tidytext performs blind bi-grams. We can look to use the TM package instead.
+# Convert some of the long tables from kable to paginated DT tables, if appropriate
+
+# Addressing the so what?
+# 1. Having never listened to Iron Maiden's Powerslave, I now have a much clearer understanding of this album's content
+# 2. In consultation with my family, I selected (cherry picked) 6 albums we percieved to be "eclectic" from one another, does this analysis agree with this perception? <<weave in this throughout the analysis, each component accept/rejecting the idea and come to a conclusion at the end.
+
+# Fixes: rsconnect required us toset R_LIBS_USER as an environment variable in windows 10 user environment variables, value set to the R package library folder configured for R studio.
+```
+
 ```{r global_options, include=FALSE}
 ## insert libraries here
 devtools::install_github("rstudio/rsconnect")
@@ -1665,7 +1680,7 @@ Bree.
   
 ## 6.	References
 
-Many hours have been spent researching approaches for designing and writing this analysis. Here’s some items we’d like to share:
+Many hours have been spent researching approaches for designing and writing this analysis. Here’s some items I’d like to share:
 
 **Inspirations for this piece**
 

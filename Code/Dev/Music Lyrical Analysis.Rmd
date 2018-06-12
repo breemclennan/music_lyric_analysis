@@ -220,9 +220,9 @@ This project will be written in R, with the [repository link here](https://githu
     
   * **5.	Findings & Learnings**
   
-    +	Findings
-    + Learnings, gotchas, traps for young players
-    + Where to next, part 2
+    +	a.  Findings
+    + b.  Learnings, gotchas, traps for young players
+    + c.  Where to next & part 2
     
   &nbsp;
   
@@ -342,7 +342,7 @@ For the source dataset we’re creating, we want to maintain the “structural i
 
 **Why?**
 
-Music is all about patterns, sequences and time signatures. Lyrics are written differently to many other forms of written communication. Lyrics are also interwoven with sound, else it would be just poetry or a short story. It would be inappropriate at this point to treat the lyrics as one giant “word pool”. We need to maintain hierarchial groupings and identify which lyrics belong with which artist and album. Let's firstly observe the lyrics in as close to the original structure as they were written.
+Music is all about patterns, sequences and time signatures. Lyrics are written differently to many other forms of written communication. Lyrics are also interwoven with sound, else it would be just poetry or a short story. It would be inappropriate at this point to treat the lyrics as one giant “word pool”. We need to maintain hierarchical groupings and identify which lyrics belong with which artist and album. Let's firstly observe the lyrics in as close to the original structure as they were written.
 
 **How do we do this?**
 
@@ -575,7 +575,7 @@ From this dataset, the most important variables we will be using frequently will
 Our dataset is almost ready for exploration. There's a few remaining data wrangling steps to complete:
 
   1. Manually identify any _"undesirable words"_ in the context of lyrics. Sometimes we see markers in the lyric sheets like "chorus", "repeat x3" etc.
-  2. We have the option to remove stop words at this point, although I would like to leave them in for intial exploration and remove them when we begin more detailed text analysis.
+  2. We have the option to remove stop words at this point, although I would like to leave them in for initial exploration and remove them when we begin more detailed text analysis.
   3. Create lyric line tokens, split the lyrics into individual verses.
   4. Create lyric word tokens, split the lyrics into individual words.
   5. Create numeric counter of how many words per song, per album & artist.
@@ -805,11 +805,6 @@ wordcloud(albums_wordcloud_IronMaiden$word, albums_wordcloud_IronMaiden$n, min.f
 
 ```
 
-```{r "Exploration_WordClouds_RenderAll", echo=FALSE, eval=TRUE, fig.width=5, fig.height=5, fig.align='left'}
-#library(wordcloud)
-#par(mfrow = c(6, 1))
-```
-
 &nbsp;
 
 **e. Lexical diversity (vocabulary)**
@@ -887,7 +882,7 @@ We have observed the lexical diversity for our collection of songs. Let's now ta
 
 Measuring and observing lyrical (or word) repetition is very relevant for this analysis as our context is music. Repetition can be observed in both instrumental waveforms and in lyrical structure. Ever had a song stuck in your head, repeating over and over? 
 
-The challenge here is to identify and use a visualisation which neatly and clearly descibes repetition for our collection of songs.
+The challenge here is to identify and use a visualisation which neatly and clearly describes repetition for our collection of songs.
 
 Enter package `songsim`.
 
@@ -1037,7 +1032,7 @@ Some notable mentions from the "SongSim Matrix Poster":
 * Hybrid of "gutter" and "broken diagonal"" patterns: Very much Led Zeppelin.
 
 
-This has certainly unconvered some very interesting insights about how the songs in the collection are structured, and maybe even shed some light on the Artist's preferences toward lyrical song writing.
+This has certainly uncovered some very interesting insights about how the songs in the collection are structured, and maybe even shed some light on the Artist's preferences toward lyrical song writing.
 
 
 &nbsp;
@@ -1060,7 +1055,7 @@ With the TF and IDF combined, a word's (or a lyric's) importance is adjusted for
 
 For our analysis we can use TF-IDF to identify which words are important to each of the albums in the collection, and compared across albums. We expect the albums to differ in terms of subject/topic, content and sentiment, we therefore expect the frequency of words to differ between albums, the TF-IDF metric will highlight these differences.
 
-So let's take a look at word importance through the lense of TF-IDF
+So let's take a look at word importance through the lens of TF-IDF
 
 
 ```{r "Exploration_TFIDF", include=FALSE}
@@ -1075,6 +1070,8 @@ tidy_MusicLyrics %>% #check the word list and identify any further words to filt
   count(word, sort = TRUE)
 
 ```
+
+&nbsp;
 
 ```{r "Exploration_TFIDF_Plots", echo=FALSE, eval=TRUE, fig.width=10, fig.height=7}
 MusicLyrics_tf_idf <- tidy_MusicLyrics %>%
@@ -1116,7 +1113,7 @@ Some questions we can ask before heading into sentiment analysis and machine lea
 1. Do we need to perform more data preparation?
 2. Stemming: do we need to remove suffixes from words and reduce down to the common word origin? Is it appropriate?
 3. Lemmatization: do we need to remove inflectional endings of words, and return the base or dictionary form of a word (which is known as the lemma)? 
-4. Advanved concept in sentiment analysis: Is it appropriate to simply replace some certain words with more frequently used synonyms (semantically similar peers) and/or hypernyms (common parents)? This would be used to address lexicon word matching challenges, between the words in the text versus the lexicon used.
+4. Advanced concept in sentiment analysis: Is it appropriate to simply replace some certain words with more frequently used synonyms (semantically similar peers) and/or hypernyms (common parents)? This would be used to address lexicon word matching challenges, between the words in the text versus the lexicon used.
 5. Do we need to construct our own lexicon for the sentiment analysis?
 
 &nbsp;
@@ -1140,6 +1137,8 @@ We will use the `tidytext` package and call in the `NRC` lexicon by using the `g
 
 
 Let's observe how the NRC lexicon triages our song lyric words into the emotional sentiments.
+
+&nbsp;
 
 ```{r "Exploration_NRCSentiment", echo=FALSE, eval=TRUE, fig.width=10, fig.height=10}
 #METHOD 1: USING TIDY TEXT
@@ -1179,9 +1178,11 @@ SongSentiment_TidyText_NRC %>%
 ```
 &nbsp;
 
-This is a very dense visualisation, difficult to distinguise any clear patterns.
+This is a very dense visualisation, difficult to distinguish any clear patterns.
 
 Let's summarise this down to word counts by emotional sentiment.
+
+&nbsp;
 
 ```{r "Exploration_NRCSentiment_Summary", echo=FALSE, eval=TRUE, fig.width=7, fig.height=5}
 
@@ -1203,6 +1204,7 @@ wordToken %>%
   ggtitle("NRC Sentiment by Artist & Album") +
   coord_flip()
 ```
+&nbsp;
 
 So how do these album's make us feel when we listen to them?
 
@@ -1258,6 +1260,7 @@ b.G <- BiGrams %>%
 b.G 
 ```
 
+&nbsp;
 
 ```{r "Exploration_TriGrams", echo=FALSE, eval=TRUE, fig.width=10, fig.height=7}
 t.G <- TriGrams %>%
@@ -1280,7 +1283,7 @@ t.G
 ```
 &nbsp;
 
-The lasting "sentiments" from obseving these bi-grams and tri-grams:
+The lasting "sentiments" from observing these bi-grams and tri-grams:
 
 * Daft Punk - The lyrical repetitiveness is very obvious, strongest of all the artists. Ngram structure points toward "being in the moment" and self-enjoyment.
 * Elton John - Less ngram frequency, with a common thread of thankfulness ("thank") and chill ("mellow")
@@ -1294,9 +1297,9 @@ The lasting "sentiments" from obseving these bi-grams and tri-grams:
 
 **c. Bi-gram network analysis**
 
-From our Bi-Gram constructs we can create a network graph using the `ggraph` and `igraph` packages. We can arrange words into connected nodes, with selected "centring words" at the centres.
+From our Bi-Gram constructs we can create a network graph using the `ggraph` and `igraph` packages. We can arrange words into connected nodes, with selected "centering words" at the centers.
 
-From our earlier inspection of unigram word frequencies, the following high-frequency "centering words" have been selected
+From our earlier inspection of unigram word frequencies, the following high-frequency "centering words" have been selected:
 
 `"hey","feel","gonna","people","yeah","love","light","time", "life"`
 
@@ -1305,7 +1308,7 @@ Our dataset will be grouped up, to represent all songs, for all artists and albu
 
 &nbsp;
 
-```{r "Exploration_BiGrams_Network", echo=FALSE, eval=TRUE, fig.width=7, fig.height=7}
+```{r "Exploration_BiGrams_Network", echo=FALSE, eval=TRUE, fig.width=7, fig.height=7, fig.align='center'}
 centre_words <- c("hey","feel","gonna","people","yeah","love","light","time", "life")
 
 bigrams_separated <- BiGrams %>%
@@ -1339,7 +1342,7 @@ ggraph(bigram_graph, layout = "fr") +
 
 This is just a simple network graph to demonstrate the various methods we can use to visualise our song lyric data.
 
-For any songwriter's out there, perhaps this could be useful in identifying lyric constructs.
+For any songwriter's out there, perhaps this could be useful in identifying lyric constructs?
 
 
 &nbsp;
@@ -1349,12 +1352,13 @@ For any songwriter's out there, perhaps this could be useful in identifying lyri
 
 Which songs are similar to each other in lyrical content? We can explore this by finding the pairwise correlation of lyric (word) frequencies within each song, using the `pairwise_cor()` function from the `widyr` package.
 
+The assumption here is, the higher the correlation factor the higher the similarity between songs.
 
 We will remove stop words for this analysis, to allow us to observe more meaningful results.
 
 &nbsp;
 
-```{r "Exploration_PairWiseCompare", echo=FALSE, eval=TRUE, fig.width=7, fig.height=4}
+```{r "Exploration_PairWiseCompare", echo=FALSE, eval=TRUE, fig.width=7, fig.height=4, fig.align='center'}
 
 library(widyr)
 library(ggraph)
@@ -1387,10 +1391,13 @@ song_cors %>%
 
 ```
 
-Well this is curious, **Elton John's Mona Lisa and Mad Hatters** and **Led Zeppelin's Down by the Seaside** have a connection with a correlation greater than 0.4. Does this mean they are similar songs?
+&nbsp;
 
-Interesting that no other songs had a high enough correlation to be considered as significant.
+Well this is curious! We created a pairwise correlation plot using the `igraph` package and using the `graph_from_data_frame` function with our input dataset. We filtered our dataset to show only correlations stronger than `0.4`
 
+From this it appears only **Elton John's Mona Lisa and Mad Hatters** and **Led Zeppelin's Down by the Seaside** have a connection with a correlation greater than 0.4. Does this mean they are similar songs?
+
+Interesting that no other songs had a high enough correlation in the pairwise calculation to be considered as _"significant"_.
 
 &nbsp;
 
@@ -1398,18 +1405,15 @@ Interesting that no other songs had a high enough correlation to be considered a
 
 Using the `QDAP` package we have access to a function called `trans_venn()`. Since we just observed pairwise correlations between songs, let's take a look at similarity between albums, visualised as a venn diagram.
 
-
-```{r "Exploration_AlbumSimilarity", echo=FALSE, eval=TRUE, fig.width=10, fig.height=5}
-VennDiagram <- with(wrk.02_TextAnalysis_02 , qdap::trans_venn(text.var = text, grouping.var = CATMusicArtist, title.name="Album lyric similarity", legend.location = "topright"))
+```{r "Exploration_AlbumSimilarity", echo=FALSE, eval=TRUE, fig.width=10, fig.height=5, fig.align='center'}
+VennDiagram <- with(wrk.02_TextAnalysis_02 , qdap::trans_venn(text.var = text, grouping.var = CATMusicArtist, title.name ="Album Similarity by Song Lyrics", legend.location = "topright"))
 
 ```
-
 It appears **U2's The Joshua Tree** is a versatile linking centroid in this venn diagram. Can the other albums realistically be "linked" together via The Joshua Tree?
-
 
 &nbsp;
 
-**f.  Song dissimilarity (agreement between lyrics)**
+**f. Song dissimilarity (agreement between lyrics)**
 
 Just like the album similarity we calculated in the previous section, we can do something similar for songs. Still using the `QDAP` package, we can use the `Dissimilarity()` function. We can perform dissimilarity statistics, using the distance function to calculate dissimilarity statistics by grouping variables.
 
@@ -1428,122 +1432,124 @@ rect.hclust(fit, k = 14, border = c("red", "blue", "green", "purple", "orange", 
 
 ```
 
-This dendogram offers us a very alternative view of how similar and different the individual songs in the collection are.
+This dendogram offers us a very alternative view of how similar and different the individual songs in the collection are. We configured the dendogram to identify 14 clusters and illustrate the borders of these clusters with the coloured rectangles.
 
+Curious how there is one large cluster in the middle, illustrated with the green rectangle.
   
 &nbsp;
     
 ## 4. Unsupervised Machine Learning
+
+&nbsp;
   
 **a. Topic modelling: Structured Topic Modelling (STM)**
 
-Topic modeling is a method for unsupervised classification of documents, similar to clustering on numeric data, which finds natural groups of items even when we’re not sure what we’re looking for or what our target is.
+Topic modelling is a method for unsupervised classification of documents, similar to clustering on numeric data, which finds natural groups of items even when we’re not sure what we’re looking for or what our target is.
 
-Can we identify any meaningful groups or themes in our collection of songs?
+Some questions for guiding this section are:
+
+* Can we identify any meaningful groups or themes in our collection of songs?
+* Which words (or lyrics) contribute to which topics?
+* Which topics contribute to which albums?
 
 For this piece, we will use Structured Topic Modelling (STM) and make use of the packages `quanteda` and `stm`.
 
-
-One of the drawbacks of STM is the need to select the number of topics "K" to train the model with. Fortunately, the `stm` package comes with  lots of functions and support for choosing an appropriate number of topics for the model.
-
+First step is to prepare our input dataset:
 
 &nbsp;
 
-```{r "TopicModel_STM", echo=FALSE, eval=TRUE}
+```{r "TopicModel_DataSetup", echo=TRUE, eval=TRUE}
 
-#TOPIC MODEL (Structured Topic Model, STM)
-#inspiration reference: https://juliasilge.com/blog/sherlock-holmes-stm/
-
-#The stm() function take as its input a document-term matrix,
-#either as a sparse matrix or a dfm from quanteda.
-
-#Reference: http://thomaselliott.me/pdfs/earl/topic_modeling.html
-
-# Next step is the processing workhorse. 
-#  This actually does the topic modeling. 
-# First, we can run stm with init.type=“Spectral” and K=0 
-#  to have the algorithm calculate the appropriate number of topics itself.
-# This does not mean the number of topics it finds is the true number of topics, 
-# but it is a good place to start.
-# 
-# Spectral initialization uses a decomposition of the VxV word co-occurence matrix
-# to identify “anchor” words - words that belong to only one topic and therefore identify that topic.
-# The topic loadings of other words are then calculated based on these anchor words. 
-# This processes is deterministic, so that the same values are always arrived at with the same VxV matrix. 
-# The problem is that this process assumes that the VxV matrix is generated from the population of documents
-# (or, put another way, assumes it is generated from an infinite number of documents). 
-# Thus, the process does not behave well with infrequent words. The solution to this is to remove infrequent words,
-# though one should still be careful if you don’t have a lot of documents.
-# My guess is that I should use Spectral, but make sure it is robust to a series of LDA models (meaning that Spectral produces results as good as or better than LDA models).
-# I also suspect that I don’t have enough documents to trust the number of models to use.
-
+#Load the libraries
 library(quanteda)
 library(stm)
 
-You could use either of these objects (sherlock_dfm or sherlock_sparse)
- as the input to stm(). For this analysis we will use the quanteda dfm object.
-
-
-library(quanteda)
-library(stm)
-
+# Using our LineToken dataset from earlier, un-nest by single words
+# Then we will remove stop words and filter out any more undesirable words
 tidy_MusicLyrics <- lineToken %>%
   unnest_tokens(word, text) %>%
-  anti_join(stop_words)
+  anti_join(stop_words) # %>%
   #filter(word != "")
 
-tidy_MusicLyrics %>% #check the word list and identify any further words to filter out above.
+# check the output from tidy_MusicLyrics and identify any further words to filter out above, rerun the above step if needed.
+tidy_MusicLyrics %>%
   count(word, sort = TRUE)
 
+# Create a Quanteda DFM object, ready to use in the STM
 MusicLyrics_dfm <- tidy_MusicLyrics %>%
   count(CATMusicArtist, word, sort = TRUE) %>%
   cast_dfm(CATMusicArtist, word, n)
 
+```
 
-#pre-process the text. This involves removing stop words (common words as well as user specified stop words), stemming words (to remove suffixes), and other basic steps to make the text ready for processing.
-tidy_stemming_MusicLyrics <- textProcessor(tidy_MusicLyrics$word, meta = tidy_MusicLyrics, customstopwords = undesirable_words,
+One of the drawbacks of STM is the need to select the number of topics "K" to train the model with. Fortunately, the `stm` package comes with  lots of functions and support for choosing an appropriate number of topics for the model.
+
+With our DFM object prepared and ready, we can proceed to running the STM model with parameters `init.type="Spectral"` and `k = 0`. This will train the model, and the algorithm will use `K = 0` to calculate the maximum number of topics itself. From here we can further analyse and refine how many topics would be appropriate to set `K` to.
+
+The `Spectral` initialization uses a decomposition of the VxV word co-occurrence matrix to identify “anchor” words, which are words that belong to only one topic and therefore identify that topic. The topic loadings of other words are then calculated based on these anchor words. This processes is deterministic, so that the same values are always reached with the same VxV matrix. The problem is that this process assumes that the VxV matrix is generated from the population of an infinite number of documents (or in our case, songs). Therefore, the process does not behave well with infrequent/rare words. The solution to this is to remove infrequent words, although we still need to be careful in situations where we don’t have a lot of documents, in our case we have 59 songs across 6 albums.
+
+```{r "TopicModel_STM", echo=FALSE, eval=TRUE}
+# STM cluster size analysis: REF: http://thomaselliott.me/pdfs/earl/topic_modeling.html
+# pre-process the text. This involves removing stop words (common words as well as user specified stop words), stemming words (to 
+# remove suffixes), and other basic steps to make the text ready for processing.
+tidy_stemming_MusicLyrics <- stm::textProcessor(tidy_MusicLyrics$word, meta = tidy_MusicLyrics, customstopwords = undesirable_words,
                                            stem = TRUE)
 #prep the documents. In this step, I remove words that appear in less than 1 document, as well as words that appear in more than 60 articles. This helps remove some noise.
 num.docs <- length(tidy_stemming_MusicLyrics$documents)
 max.docs <- num.docs-2
-out <- prepDocuments(tidy_stemming_MusicLyrics$documents, tidy_stemming_MusicLyrics$vocab, tidy_stemming_MusicLyrics$meta,
+out <- stm::prepDocuments(tidy_stemming_MusicLyrics$documents, tidy_stemming_MusicLyrics$vocab, tidy_stemming_MusicLyrics$meta,
                      lower.thresh = 1,upper.thresh = max.docs)
 
 # Check how many documents we have
 texts <- tidy_MusicLyrics$word[-tidy_stemming_MusicLyrics$docs.removed]
 
+```
 
-# Train the model with 0 clusters K defined. Lets observe:
-STM_topic_model <- stm(MusicLyrics_dfm, K = 0, seed=12345,
-                       verbose = FALSE, init.type = "Spectral")
 
-#The above analysis identifies 32 topics, below are common words for each of these topics:
+```{r "TopicModel_STM_train", echo=TRUE, eval=TRUE}
+# Train the model with 0 clusters K defined. Lets observe how many Topics emerge:
+STM_topic_model <- stm(MusicLyrics_dfm, K = 0, seed=12345, verbose = FALSE, init.type = "Spectral")
+
+```
+
+Training the model on `K = 0` clusters identifies 32 topics. We can use `labelTopics()` to describe the common words associated with each of these 32 topics. 
+
+```{r "TopicModel_STM_trainResults", echo=TRUE, eval=TRUE}
 labelTopics(STM_topic_model)
+```
 
-#Below graphs how common each topic is:
-plot.STM(STM_topic_model,type = "summary", xlim = c(0, 0.1))
+We can now use `plot.STM()` and observe how common each topic is:
 
+```{r "TopicModel_STM_PlotSTM", echo=TRUE, eval=TRUE, fig.width=8, fig.height=10, fig.align='center'}
+stm::plot.STM(STM_topic_model,type = "summary", xlim = c(0, 0.1))
+```
 
-#plot exclusivity vs semantic coherence
+Exploring semantic coherence and exclusivity for each topic using the function `stm::topicQuality()`:
+
+* **Semantic coherence** is the empirical co-occurrence of words with high probability under a given topic. If you have word "apple" what is the probability the word "banana" will also appear? For the topic, the coherence is the sum of the log of these probabilities.
+* **Exclusivity** is the top words for a topic which are unlikely to appear in top words for other topics.
+
+```{r "TopicModel_STM_TopicQuality", echo=FALSE, eval=TRUE, fig.width=8, fig.height=8, fig.align='center'}
+# plot exclusivity vs semantic coherence
 topicQuality(STM_topic_model, documents = out$documents)
 
-#Topic modelling
-#stm, quanteda
-#fitting the model:
-#  unsupervised M learning
-#which words contribute to which topics
-#which topics contribute to which documents
+```
 
-#beta matrix: what are the words which contribute to each topic
-#> plot the matrix, top 10 words in cluster
+From our initial 32 identified topics we can begin to see some groups of topics emerging. Perhaps we can refine these 32 topics down to a smaller number of topics? Perhaps 6 is a more reasonable number of topics.
 
-#gamma matrix:
-#  how much did this document contribute to the topic?
-#  how likely is this document to belong to this topic
+Let's train our model on 6 topics, setting parameter to `K = 6`.
 
-
+```{r "TopicModel_STM_TrainClusters", echo=TRUE, eval=TRUE, fig.width=10, fig.height=10, fig.align='center'}
 STM_topic_model <- stm(MusicLyrics_dfm, K = 6, seed=12345, verbose = FALSE, init.type = "Spectral")
+```
+&nbsp;
 
+We can now observe and visualise the output from our trained model across the 6 topics.
+
+Using the **beta matrix** we can see which words contribute the most to each topic.
+
+&nbsp;
+```{r "TopicModel_STM_BetaMatrix", echo=TRUE, eval=TRUE, fig.width=8, fig.height=6, fig.align='center'}
 td_BetaMatrix <- tidy(STM_topic_model)
 
 td_BetaMatrix %>%
@@ -1558,92 +1564,120 @@ td_BetaMatrix %>%
   coord_flip() +
   #scale_x_reordered() +
   labs(x = NULL, y = expression(beta),
-       title = "Highest word probabilities for each topic",
+       title = "Beta Matrix: Highest word probabilities for each topic",
        subtitle = "Different words are associated with different topics")
 
-#Now let’s look at another kind of probability we get as output from topic modeling, 
-# the probability that each document is generated from each topic.
+```
+&nbsp;
+
+Our STM model also has another metric we can use and observe, the **gamma matrix**. This is the probability that each "document" is generated from each topic.
+
+Questions we can observe here are:
+
+* How much did this document contribute to the topic?
+* How likely is this document to belong to this topic?
+
+&nbsp;
+```{r "TopicModel_STM_GammaMatrix", echo=TRUE, eval=TRUE, fig.width=8, fig.height=6, fig.align='center'}
 td_GammaMatrix <- tidy(STM_topic_model, matrix = "gamma",                    
                  document_names = rownames(MusicLyrics_dfm))
 
 ggplot(td_GammaMatrix, aes(gamma, fill = as.factor(topic))) +
   geom_histogram(alpha = 0.8, show.legend = FALSE) +
   facet_wrap(~ topic, ncol = 3) +
-  labs(title = "Distribution of document probabilities for each topic",
+  labs(title = "Gamma Matrix: Distribution of document probabilities for each topic",
        subtitle = "Each topic is associated with exactly 1 story",
-       y = "Number of stories", x = expression(gamma))
-
-#In this case, each short story is strongly associated with a single topic.
-#Topic modeling doesn’t always work out this way,
-#but I built a model here with a small number of documents (only 6) 
-#and a relatively large number of topics compared to the number of documents.
-#In any case, this is how we interpret these gamma probabilities; they tell us which topics are coming from which documents.
-
-# We can see some interesting things; there are shifts through the collection
-# as topic 3 stories come at the beginning and topic 5 stories come at the end. 
-#Topic 5 focuses on words that sound like spooky mysteries happening at night,
-#in houses with doors, and events that you see or hear, topic 1 is about lords, 
-#ladies, and wives, and topic 2 is about… GEESE. You can use each tab in the app 
-#to explore the topic modeling results in different ways.
+       y = "Number of topics", x = expression(gamma))
 
 ```
 &nbsp;
 
+From these results it seems each song is strongly associated with a single topic. This is an uncommon occurrence as topic modeling does not always work out this way. Remembering that we built a model with only a small number of "documents" and a small amount of "words". This was still a good exercise in working with topic modelling and interpreting beta and gamma results.
+
+Observing the results from the beta matrix, the topics, and music artist influences:
+
+* Topic 1 - hybrid of Daft Punk & Elton John
+* Topic 2 - strongly suggests Iron Maiden
+* Topic 3 - faintly describes a mix of Iron Maiden and Killswitch Engage
+* Topic 4 - appears to be mostly Led Zeppelin
+* Topic 5 - a mix of Iron Maiden, Elton John
+* Topic 6 - distinctively U2
+
+&nbsp;
+
+
 ## 5.	Findings & Learnings
   
-Findings
+&nbsp;
 
-Learnings, gotchas, traps for young players
+**a. Findings**
+
+Returning to our guiding questions:
+
+**Can we make meaningful sense of the data?**
+Yes! Across the selected 6 music albums and 59 individual songs we identified:
+
+* Each song is uniquely different to the next, as we saw in the SongSim matrices, pair-wise correlations and song similarity dendogram.
+* Each album, and collection of songs within the album do suggest common overarching themes, as we saw in NRC emotional sentiments.
+* Some albums share similar themes, as we saw in the STM model and in the venn diagram.
+* Each artist (and album) has a particular preference in lyrical structure and word choice, as we saw in the SongSim matrices and Ngrams.
+
+Is it safe to say that this collection of songs is an example of an eclectic collection? Perhaps. Although, reality suggests that humans can find a way of proving and dis-proving similarity using a variety of configurable techniques.
+
+&nbsp;
 
 
-Where to next, part 2
+**b. Learnings, gotchas, traps for young players**
+
+Two key lessons I picked up on preparing this analysis:
+
+  1. Text Mining, NLP, Sentiment Analysis and Topic Modelling are all large subjects to cover in their own right. One can easily go into great detail and depth on each of these subjects. This analysis was really touching the surface of these subjects. The downside of going into depth and detail is one must factor in more research, analysis and development time, but then circle back to the big questions, "what is the purpose of this analysis", "what is the problem we are trying to solve and why does it matter?".
+  
+  2. Consider, very carefully, the technical & narrative flow of the analysis for the reader's (and developer's) benefit. This analysis intended to start with the simple data clean up and descriptive stats then progress to more intermediate and advanced techniques, building with the "lego blocks" of data and constructs along the way.  
+
+&nbsp;
+
+**c. Where to next & part 2**
 
 There were a few elements in this analysis we could unpack further, such as:
--
--
--
 
-As mentioned in the purpose and objective of this analysis, having a clear business problem to address goes a long way to creating useful, actionable insights, to assist the target audience. If there are more business problems to consider and unpack then it is likely we can look at part two of this analysis.
+* Song sentiment progression from first to last verse (by "sentence").
+* What would happen if we applied word stemming, lemmatization, synonyms and hypernyms?
+* Including all albums released by the artists selected for this analysis. How much different would adding more "documents" make?
 
-<br>
+Given this analysis is all about music, we only covered one aspect in this analysis, the lyrical constructs. To make this a more holistic analysis, we will consider the audio components of music for a subsequent analysis.
 
-We'd love to receive your thoughts, queries and feedback on this analysis. Please feel free to reach out to Bree at bree_mclennan@outlook.com .
-<br><br> 
+&nbsp;
+
+
+We'd love to receive your thoughts, queries and feedback on this analysis. Please feel free to reach out to Bree at bree_mclennan@outlook.com.
+
+&nbsp;
+
 Thanks for connecting and reading!
 
 Bree.
 
 
-    
 &nbsp;
   
 ## 6.	References
 
-Many hours have been spent researching approaches for designing and writing this analysis. Here’s some items I’d like to share
-Inspirations for this piece
-TV series “It might get loud” with The Edge (U2), Jimmy Page (Led Zeppelin), Jack White (The White Stripes)
-Game: Audiosurf (visualising sound, beat detection algorithms and digital signal processing)
+Many hours have been spent researching approaches for designing and writing this analysis. Here’s some items we’d like to share:
 
-Text mining, NLP and Machine Learning with Music Lyrics
-Prince analysis
-https://www.datacamp.com/community/tutorials/R-nlp-machine-learning
-https://www.datacamp.com/community/tutorials/sentiment-analysis-R
-The Ramones
-http://r-blog.salvaggio.net/?p=521
-Rick and Morty
-http://tamaszilagyi.com/blog/a-tidy-text-analysis-of-rick-and-morty/
-50 Years of Pop Music Lyrics
-https://github.com/walkerkq/musiclyrics
-Radiohead & Using the Spotify API
-http://www.rcharlie.com/post/fitter-happier/
-https://github.com/charlie86/spotifyr
-https://developer.spotify.com/web-api/object-model/#audio-features-object
-http://rcharlie.net/sentify/
+**Inspirations for this piece**
 
-Alternative sentiment analysis: Using the “gloom” index to find depressing songs
-http://blog.revolutionanalytics.com/2017/02/finding-radioheads-most-depressing-song-with-r.html
-http://www.everydayanalytics.ca/2013/06/radiohead-lyrics-data-visualization-and-content-analysis.html
+* TV series “It might get loud” with The Edge (U2), Jimmy Page (Led Zeppelin), Jack White (The White Stripes)
+* Game: Audiosurf (visualising sound, beat detection algorithms and digital signal processing)
 
-Alternative visualisations: Visualising songs as matrix structures and find repetitions
-R Package song sim: http://giorasimchoni.com/2017/10/16/2017-10-16-repeat-yourself-the-songsim-package/
+**Text mining, NLP and Machine Learning with Music Lyrics**
+
+[Prince analysis - NLP](https://www.datacamp.com/community/tutorials/R-nlp-machine-learning)
+[Prince analysis - Sentments](https://www.datacamp.com/community/tutorials/sentiment-analysis-R)
+[The Ramones](http://r-blog.salvaggio.net/?p=521)
+[Rick and Morty](http://tamaszilagyi.com/blog/a-tidy-text-analysis-of-rick-and-morty/)
+[50 Years of Pop Music Lyrics](https://github.com/walkerkq/musiclyrics)
+[Radiohead & Using the Spotify API](http://www.rcharlie.com/post/fitter-happier/)
+[Alternative sentiment analysis: Using the “gloom” index to find depressing songs](http://blog.revolutionanalytics.com/2017/02/finding-radioheads-most-depressing-song-with-r.html)
+[Alternative visualisations: Visualising songs as matrix structures and find repetitions](http://giorasimchoni.com/2017/10/16/2017-10-16-repeat-yourself-the-songsim-package/)
 

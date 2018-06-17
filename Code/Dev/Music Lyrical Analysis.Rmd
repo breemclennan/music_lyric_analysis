@@ -2,10 +2,11 @@
 title: "Music Lyrical Analysis. Unpacking musical preferences with R"
 author: "Bree McLennan (www.breemclennan.com)"
 date: "10 June 2018"
-output: html_document
-    #toc: true
-    #toc_depth: 2
-    #toc_float: true
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
     #theme: cerulean
     #highlight: haddock
     #df_print: paged
@@ -19,11 +20,35 @@ output: html_document
 # Ngrams: Bi and Tri grams. "time has come" 10, "has come" 6, in a better ngram analysis, parts are not recounted
 #         recounting the parts skews this type of analysis
 #         tidytext ngrams have this shortcoming, tidytext performs blind bi-grams. We can look to use the TM package instead.
+
+# WORKFLOW code from BK ======
+# Corpus -> TidyText 
+#MyCorpus <- Corpus(DataframeSource(wrk.validclaims)) 
+#MyCorpusQ <- quanteda::corpus(MyCorpus) 
+#tidy.data <- tidy(MyCorpusQ) 
+#Bigram setup ======
+#NgramTokenizer <- function(x) {RWeka::NGramTokenizer(x, RWeka::Weka_control(min = 1, max = 2))} 
+#MyCorpus <- Corpus(DataframeSource(wrk.validclaims)) 
+# Create DTM ========
+#  dtm <<- DocumentTermMatrix(MyCorpus, control = list(tokenize = NgramTokenizer , 
+#    weighting = weightTf, wordLengths = c(3, 60), bounds = list(global = c(5,Inf)))) 
+#
+#
+#
 # Convert some of the long tables from kable to paginated DT tables, if appropriate
 
 # Addressing the so what?
+# From dad: your coloured word count chart. What density of words corresponds to each coloured dot? 
+# 0. its a clinical dissection of lyrics. Why is it we associate with a song, a melody or rhythm? Why does that piece make an impact upon us when other music has no charm? 
+# We can imagine or emphasize with the words, or the melody takes us away from our reality to a place where stress is lessened or removed for awhile. Medical studies have shown that music does have a beneficial effect on us.   As I mentioned earlier: it’s the good vibrations, that matter.
+#There is much to analyse  if you consider rhythm, melody, instruments, the arrangement of music and whether the words match the music, how are #the words arranged, where each instrument comes into the piece and does it suit the melody or distract from it. 
+
+#
 # 1. Having never listened to Iron Maiden's Powerslave, I now have a much clearer understanding of this album's content
 # 2. In consultation with my family, I selected (cherry picked) 6 albums we percieved to be "eclectic" from one another, does this analysis agree with this perception? <<weave in this throughout the analysis, each component accept/rejecting the idea and come to a conclusion at the end.
+# 3. Exploration of copy write legality. in forensic analysis to prove or disprove copy write infringements.
+# 4. How could this analysis be used on concert music,jazz, chamber music or modern music that does not have words?
+
 
 # Fixes: rsconnect required us toset R_LIBS_USER as an environment variable in windows 10 user environment variables, value set to the R package library folder configured for R studio.
 ```
@@ -50,8 +75,11 @@ library(ggplot2) #visualizations
 library(kableExtra) # create a nicely formated HTML table
 library(formattable) # for the color_tile function
 
+library(DT)       # For rendering tables
+
 #if (!require('RWordPress')) { #required for WordPress publishing
 #  devtools::install_github(c("duncantl/XMLRPC", "duncantl/RWordPress"))
+
 #}
 library(RWordPress)
 
@@ -139,7 +167,8 @@ include_graphics(image01_path)
 
 &nbsp;
 
-## Introduction, influences and inspirations
+## Introduction
+### Influences and inspirations
 I have loved music since the day I was created. I love to be surrounded by glorious sounds and music I can really connect with. I’m by no means a musician or a sound engineer, I’m just a simple lover and enthusiast of listening to (and sometimes singing along with) music.
 
 My family greatly influenced this musical enthusiasm. I grew up in a family full of music listening enthusiasts and “ninja singers” (people who sing when they think no one is around or can hear them!). My Dad influenced me with his eclectic collection of classic rock and famous mainstream songwriters from the 60’s through to the 80’s. From my Dad, I learned very early on to appreciate the crystal-clear sound vinyl records offer as well as quality stereo equipment. My Mum influenced me with her regular listening to radio stations, in particular Gold 104 FM (Melbourne Australia) and random sing-alongs in the car. My brother influenced me with his electrical engineering talents. I distinctly remember as a young kid the day he created his first car-boot boom box. Thundering rumbles of finely tuned bass could be heard from 3 blocks away in tranquil suburbia, and of course it was 90’s techno pop, electronica and occasionally Jamiroquai! 
@@ -148,40 +177,43 @@ So how did all this intriguing musical enthusiasm influence me?
 
 I was always drawn to classic and hard rock. I’ve always been fascinated with the interaction of sound compositions and poetic lyrical prose. Being an athlete since I was 9, I recognised early on how sounds and lyrics could influence my performances. There’s music to psych you up or calm you down, and rhymes to help you stay in time! 
 
-I discovered my fan-girl love for Irish rock group U2 when I was 14. It was their album “All That You Can’t Leave Behind” which got my attention. I then did what any obsessed fan-girl would do. I researched everything humanly possible about their music, and in addition to knowing every lyric to every song U2 ever wrote, I consequently ended up learning a great deal about many musical-related and life-experience topics. Things like the guitars and complex sound effects The Edge uses, Bono’s public speaking, song writing talents and stage presence, Larry’s masterful methods of how to stay out of the public spotlight while protecting his band, and Adam’s talents for creative collaboration and sophisticated, artistic conversation.
+I discovered my fan-girl love for Irish rock group U2 when I was 14. It was their album “All That You Can’t Leave Behind” which got my attention. I then did what any obsessed fan-girl would do. I researched everything humanly possible about their music, and in addition to knowing every lyric to every song U2 ever wrote, I consequently ended up learning a great deal about many musical-related and life-experience topics. Things like the guitars and complex sound effects The Edge uses, Bono’s public speaking, song writing talents and stage presence, Larry Mullen Junior's masterful methods of how to stay out of the public spotlight while protecting his band, and Adam Clayton's talents for creative collaboration and sophisticated, artistic conversation.
 
 As the years moved on, I began to open up and diversify my music collection. I have my husband to thank in part for this, introducing me to heavy metal and modern electronic genres. These days, my music interest is eclectic. In any single day I enjoy listening to anything between Eminem and Enya, Rammstein to Bobby McFerrin, Tibetan Buddhist Monk chanting to Dragonforce Through the Fire and the Flames. Yes, I’m also a huge fan of the Audiosurf game series, and Guitar Hero!
 
 &nbsp;
 
-## The data of music: What’s this analysis about? What's the purpose and objective?
+## The purpose and objective for this analysis
+### The data of music and unpacking personal music preferences
 
 There’s not many days that go by where I’m not listening to music. I spend hours every day working away while listening to music, many hours creating an inadvertent fashion trend with my headphones and many hours with my thoughts randomly jumping in with playful musical commentary.
 
-More recently, this thought pattern commentary has been circulating in my head:
+More recently, this thought pattern commentary has been circulating in my head while listening to my personal collection of music:
 
-  *	“This is such an eclectic playlist, **how do you make sense** of such a diverse collection of music?”
-  *	“How on earth are these pieces of music even **related or connected?**” “Yes Joshua Tree, I’m referring to you, I still haven’t found what I’m looking for and its not Bullet the Blue Sky!”
-  *	“What makes this song **unique, special, similar and different** to another song in your playlist…surely Led Zeppelin’s Kashmir is some kind of random outlier?”
-  *	“Does this album actually **tell a story** or have a **meaning**?”
-  *	“Hey Bree, you are a **data scientist** by trade. **Music IS data**, could you do something **useful and insightful** with it to **find some answers**?”
+  1.	“This is such an eclectic playlist, **how do you make sense** of such a diverse collection of music?”
+  2.	“How on earth are these pieces of music even **related or connected?**” “Yes Joshua Tree, I’m referring to you, I still haven’t found what I’m looking for and its not Bullet the Blue Sky!”
+  3. 	“What makes this song **unique, special, similar and different** to another song in your playlist? Surely Led Zeppelin’s Kashmir is some kind of random outlier?” What makes this song so impactful?
+  4.	“Does this album actually **tell a story** or have a **meaning**?”
+  5.  "Is it possible to obtain an understanding of a music album through only observing its lyrics, having never actually listened to it?"
+  6.	“Hey Bree, you are a **data scientist** by trade. **Music IS data**, could you do something **useful and insightful** with it to **find some answers**?”
   
-On that last comment, my inner kid sparked up and went “ooh this could be so much fun, we can learn, write, and do an analysis with sound engineering, signal processing, text mining and natural language processing”. I very quickly realised to cover off all of those topics in a single blog wouldn’t be doing any of those single topics any justice. I would need to chunk-down these topics into separate blogs. So for this blog, I’m choosing to do one smaller topic, with great love:
+On that last comment, my inner kid sparked up and went “ooh this could be so much fun, we can learn, write, and do an analysis with sound engineering, signal processing, text mining and natural language processing”. My logical mind very quickly realised to cover off all of those topics in a single article wouldn’t be doing any of those single topics any justice. I would need to chunk-down these topics into separate articles. So for this article, the **purpose** is to demonstrate with great love:
 
-**A music lyrical analysis!** 
+**A comprehensive music lyrical analysis!** 
 
-Working with the lyrical components for a selected collection of music data. We shall apply **text mining** and **natural language processing** techniques to this data to explore the above questions, build insights and find some answers.
+Working purely with the lyrical components for a selected collection of music album data, I will apply contemporary **text mining** and **natural language processing** techniques to this data to explore the above questions, and build insights.
 
 The target audience for this analysis is aimed at the general population of music enthusiasts, data scientists, data-folk, and anyone who’s ever wondered what on earth Led Zeppelin’s Kashmir was about.
 
 &nbsp;
 
-## Technical guiding questions for designing this analysis 
+## Technical
+### Guiding questions for this analysis 
 
-As we flow through this analysis I’m seeking to weave in my responses to four key technical questions which are relevant for text mining and natural language processing:
+As we flow through this analysis I’m seeking to weave in my responses to five key technical questions which are relevant for text mining and natural language processing:
 
-  1.	How will you acquire and structure the data?
-  2.	How can we visualise this data to tell us a story and help us make meaningful sense of the data?
+  1.	How will I acquire, structure and group the data?
+  2.	How can I visualise the data to tell a story and help make meaningful sense of the data?
   3.	What are the important key words and n-gram constructs associated with each artist’s album?
   4.	What are the sentiments and emotional representations of each song and album?
   5.	What topics emerge from the albums? Can machine learning be useful here?
@@ -190,31 +222,32 @@ As we flow through this analysis I’m seeking to weave in my responses to four 
 
 ## Project workflow 
 
-This project will be written in R, with the [repository link here](https://github.com/breemclennan/music_lyric_analysi)
+This project will be written in R, with the [Github repository link here.](https://github.com/breemclennan/music_lyric_analysis)
 
 **Sequencing:**
 
-  * **1.	Data considerations**
+  * **1.	Data Considerations**
   
-    + a.  Artist and album selection
-    + b.	Obtaining lyrics
-    + c.	Converting lyric sheets into a useful dataset
-    + d.  Data cleaning & pre processing
-    + e.	Additional data: Using the Spotify API
-    + f.	Observing the specific and unique nature of music lyrics in a text analysis context
-    + g.	Variable names and the source dataset	
+    + a.  Intellectual property & copyrights
+    + b.  Artist and album selection
+    + c.	Obtaining lyrics
+    + d.	Converting lyric sheets into a useful dataset
+    + e.  Data cleaning & pre processing
+    + f.	Additional data: Using the Spotify API
+    + g.	Observing the specific and unique nature of music lyrics in a text analysis context
+    + h.	Variable names and the source dataset	
 
     &nbsp;
     
   * **2.	Manual Data Exploration**
   
-    + a.  Creating tokens & Data Wrangling 
+    + a.  Creating tokens & data wrangling 
     + b.  Identifying vocal and instrumental songs
     + c.  Word counts by song & album
     + d.  Wordclouds
     + e.  Lexical diversity (vocabulary)
     + f.  song lyrics self-similarity matrices (SongSim) & repetition
-    + g.  Term Frequency Inverse Document Frequency (TF-IDF)
+    + g.  Term Frequency - Inverse Document Frequency (TF-IDF)
     
     &nbsp;
     
@@ -249,15 +282,15 @@ This project will be written in R, with the [repository link here](https://githu
 
 ## 1. Data Considerations
 
-**Intellectual property & copyrights**
+### **a. Intellectual property & copyrights**
 
 Because we are working with copyrighted material in reference to music lyrics, the copyright belongs to the artists and songwriters who created the songs and the lyrics.
 
 &nbsp;
 
-**Artist and album selection**
+### **b. Artist and album selection**
 
-After much deliberation and consulting with friends and family, I decided to select 6 artists and an album from each of these artists. 
+After much deliberation and consulting with friends and family, I decided to select 6 artists and an album from each of these artists. The selection (cherry picking) of these artists is based on the human perception that when viewed as a collection this group of artists would be considered an "eclectic" grouping. This analysis will test this perception of eclectic grouping and by the end of this analysis, converge with a conclusion.
 
 &nbsp;
 
@@ -314,7 +347,7 @@ After much deliberation and consulting with friends and family, I decided to sel
 |               |                   |               |             | 4.	My Last Serenade                 |               | http://loudwire.com/killswitch-engage-albums-ranked/    |
 |               |                   |               |             | 5.	Life to Lifeless                 |               |                                                         |
 |               |                   |               |             | 6.	Just Barely Breathing            |               |                                                         |
-|               |                   |               |             | 7.	To The Sons of Man               |               |                                                         |
+|               |                   |               |             | 7.	To The Sons of Man               |               | Bree has not yet listened to this album.                |
 |               |                   |               |             | 8.	Temple from Within               |               |                                                         |
 |               |                   |               |             | 9.	The Element of One               |               |                                                         |
 |               |                   |               |             | 10. Vide Infra                       |               |                                                         |
@@ -327,7 +360,7 @@ After much deliberation and consulting with friends and family, I decided to sel
 | Maiden        |                   |               |             | 2.	Two Minutes to Midnight          | Heavy Metal   | album Iron Maiden produced.                             |
 |               |                   |               |             | 3.	Losfer Words (Big 'Orra)         |               |                                                         |
 |               |                   |               |             | 4.  Flash of the Blade               |               | https://www.loudersound.com/features/every-iron-maiden-album-ranked-from-worst-to-best    |
-|               |                   |               |             | 5.	The Duellists                    |               |                                                         |
+|               |                   |               |             | 5.	The Duellists                    |               | Bree has not yet listened to this album.                |
 |               |                   |               |             | 6.	Back in the Village              |               |                                                         |
 |               |                   |               |             | 7.	Powerslave                       |               |                                                         |
 |               |                   |               |             | 8.	Rime of the Ancient Mariner      |               |                                                         |
@@ -347,13 +380,13 @@ After much deliberation and consulting with friends and family, I decided to sel
 
 &nbsp;
  
-**Obtaining lyrics**
+### **c. Obtaining lyrics**
 
 I made a conscious decision to download the lyrics for the selected albums, manually. This was achieved by googling, finding the correct lyric sheets and then copying and pasting into Microsoft Word. I could have just as easily set up an R script to web-scrape, but I wanted to observe and have full control over the state and structure the lyrics were being stored as and apply some very specific formats, for a reason, which I will explain in the next section.
 
 &nbsp;
  
-**Converting lyric sheets into a useful dataset**
+### **d. Converting lyric sheets into a useful dataset**
 
 For the source dataset we’re creating, we want to maintain the “structural integrity” of the music lyrics as we import them into data frames. This means our dataset looks the same way the lyric sheet looks. We have rows for album title, rows for song titles, rows for each verse and each chorus.
 
@@ -371,7 +404,7 @@ For each lyric sheet we have, turn on **paragraph marks** and make the following
   * Configure styles for Heading 1, Heading 2, Heading 3, Normal body and spacing after paragraph
   * Heading 1 – Artist name
   * Heading 2 – Album name
-  * Heading 3 – song title name
+  * Heading 3 – Song title name
   * Song lyrics – Normal body
 
 Each verse and chorus are separated by a paragraph. Individual lines within verses and choruses separated with carriage return (Enter key), with a single space at the end of each line.
@@ -379,6 +412,8 @@ Each verse and chorus are separated by a paragraph. Individual lines within vers
 Between each style component used, separate these with a single paragraph. Paragraphs will create new rows for our dataset, as will differentiating styles.
 
 Where a song is instrumental, use `"[Instrumental]"` as a consistent tag across all lyric sheets for ease of flagging these songs for filtering later.
+
+Here is an example of the lyric sheet for **U2 - The Joshua Tree** and reading it in to create a dataframe.
 
 &nbsp;
 
@@ -415,22 +450,32 @@ raw.data02 <- docx_summary(doc02) %>%
 
 Our imported lyric sheet for **U2 - The Joshua Tree** has now become a nicely structured data frame. Here's an example of the first four records:
 
+
 &nbsp;
 
 ```{r "DataConsideration_LyricSheet02", echo=FALSE, out.width = "75%"}
 # Render lyric sheet result in dataframe
 
-raw.data02 %>%
-  head(n = 4) %>%
-  kable("html", escape = FALSE, align = "c", caption = "Raw dataset for: U2 - The Joshua Tree (first 4 records)") %>%
-  kable_styling(bootstrap_options = c("striped", "condensed", "bordered"), full_width = FALSE)
+#raw.data02 %>%
+#  head(n = 4) %>%
+#  kable("html", escape = FALSE, align = "c", caption = "Raw dataset for: U2 - The Joshua Tree (first 4 records)") %>%
+#  kable_styling(bootstrap_options = c("striped", "condensed", "bordered"), full_width = FALSE)
+
+# Render DT datatable
+datatable(raw.data02, class = "cell-border stripe", filter = 'top', caption = 'Raw dataset for: U2 - The Joshua Tree',
+          rowname = FALSE, options = list(autoWidth = TRUE, searching = TRUE, pageLength = 5))  
 
 #include_graphics(image03_path)
 ```
+&nbsp;
 
 &nbsp;
 
 We will repeat the above steps for the other Artists and Albums in our selection and append the datasets together.
+
+&nbsp;
+
+### **e. Data cleaning & pre processing **
 
 Next, we will perform some data checks and cleanup using the `QDAP` package. 
 
@@ -459,7 +504,7 @@ wrk.01_Data_Prep$text <- scrubber(wrk.01_Data_Prep$text, fix.comma = TRUE, fix.s
 
 &nbsp;
 
-**Additional data: Using the Spotify API**
+### **f. Additional data: Using the Spotify API**
 
 I thought it would be useful to explore alternative sources of data to complement the lyrical dataset we just created. In my exploration, I came across the `spotifyr` package [with more details here](https://github.com/charlie86/spotifyr). After setting up a [Spotify developers account](https://beta.developer.spotify.com/dashboard/) I was able to obtain the necessary **“client ID”** and **“client secret”** tokens, and set these as environment variables to use in the spotifyr functions.
 
@@ -536,18 +581,18 @@ glimpse(select(checkSpotify_NotMatchingSource,album_name, track_name ))
 &nbsp;
 
 
-**Observing the specific and unique nature of music lyrics in a text analysis context**
+### **g. Observing the specific and unique nature of music lyrics in a text analysis context**
 
 A few things we can observe and acknowledge so far:
 
 *	Some songs will be instrumental. The raw lyric sheets will only contain `“[Instrumental]”` for instrumental songs. We can filter these out of our analysis and re-use these in subsequent analysis. Perhaps for signal or beat detection analysis!
 * Each lyric “line” is meaningful in the flow of a song. Each line can be linked to subsequent lines via rhyming and context. We expect the lyric sheets to loosely resemble poetry and we expect a higher instance of repetition, because music is full of patterns (unless we’re dealing with some kind of random jam session or jazz genres!)
 *	The number of songs will vary per artist and album. Some albums will have more songs than others. We need to be mindful of any analysis utilising word counts or averages
-* In reality: The lyrics are interwoven with an audio track. This analysis is like staring at words in segregated silence. With the audio track interwoven this adds the dimensions of time series, verbal intonation and speech/verbal patterns, and emotional sentiment, all of which lead us to interpret the lyrics differently to how we would analysing lyrics in isolation.
+* In reality: The lyrics are interwoven with an audio track. This analysis is like staring at words in segregated silence. With the audio track interwoven this adds the dimensions of time series, rhythm, verbal intonation and speech/verbal patterns, and emotional sentiment, all of which lead us to interpret the lyrics differently to how we would analysing lyrics in isolation.
 
 &nbsp;
 
-**Variable names and the source dataset**
+### **h. Variable names and the source dataset**
 	
 Here is a summary of the source dataset we’ll use for this analysis. It is one row per album track. All lyrics for each track are contained within a single variable **TXTAllTrackLyrics**. The end of each lyric line is signified with `“<br>"` tag.
 
@@ -577,22 +622,22 @@ glimpse(wrk.02_TextAnalysis_02)
 From this dataset, the most important variables we will be using frequently will be:
 
 * **text** & **TXTAllTrackLyrics**, usage will depend on the character string structure we need for text analysis functions.
-* **CATMusicArtist**, our main grouping variable
-* **CATMusicAlbum**, our secondary grouping variable
-* **CATTrackName**, most granular grouping variable
-* **BINTrackIsInstrumental**, for filtering out songs with no lyrics
+* **CATMusicArtist**, our main grouping variable.
+* **CATMusicAlbum**, our secondary grouping variable.
+* **CATTrackName**, most granular grouping variable.
+* **BINTrackIsInstrumental**, for filtering out songs with no lyrics.
 
 &nbsp;
 
 
 ## 2. Manual Data Exploration
 
-**a. Creating tokens & Data Wrangling**
+### **a. Creating tokens & data wrangling**
 
 Our dataset is almost ready for exploration. There's a few remaining data wrangling steps to complete:
 
   1. Manually identify any _"undesirable words"_ in the context of lyrics. Sometimes we see markers in the lyric sheets like "chorus", "repeat x3" etc.
-  2. We have the option to remove stop words at this point, although I would like to leave them in for initial exploration and remove them when we begin more detailed text analysis.
+  2. We have the option to remove stop words at this point, although I would like to leave them in for initial exploration to purely observe for now, and remove them when we begin more detailed text analysis.
   3. Create lyric line tokens, split the lyrics into individual verses.
   4. Create lyric word tokens, split the lyrics into individual words.
   5. Create numeric counter of how many words per song, per album & artist.
@@ -630,9 +675,9 @@ wrk.02_TextAnalysis_03_WordCount <- wordToken %>%
 
 &nbsp;
 
-**b. Identifying vocal and instrumental songs**
+### **b. Identifying vocal and instrumental songs**
 
-We need to identify which songs are instrumental so we can exclude them for this analysis. Not surprisingly, more than half of the songs on **Daft Punk's Discovery** are instrumental.
+We need to identify which songs are instrumental so we can **exclude** them for this analysis. Not surprisingly, more than half of the songs on **Daft Punk's Discovery** are instrumental. This is significant as 8 of the 14 songs on the album will be flagged as instrumental, leaving only 6 songs available to lyrically analyse and compare with the other 5 selected artists.
 
 &nbsp;
 
@@ -660,7 +705,7 @@ instrumental %>%
 
 &nbsp;
 
-**c. Word counts by song & album**
+### **c. Word counts by song & album**
 
 With our dataset now ready for exploration, let's inspect these questions:
 
@@ -680,14 +725,16 @@ glimpse(wrk.02_TextAnalysis_03_WordCount)
 # Songs by the highest unique word count
 wrk.02_TextAnalysis_03_WordCount %>%
   ungroup(num_words, CATTrackName) %>%
-  mutate(num_words = color_bar("lightblue")(num_words)) %>%
-  mutate(CATTrackName = color_tile("lightpink","lightpink")(CATTrackName)) %>%
-  kable("html", escape = FALSE, align = "c", caption = "Songs With Highest Total Word Count") %>%
-  kable_styling(bootstrap_options = 
-                  c("striped", "condensed", "bordered"), 
-                full_width = FALSE)
+  #mutate(num_words = color_bar("lightblue")(num_words)) %>%
+  #mutate(CATTrackName = color_tile("lightpink","lightpink")(CATTrackName)) %>%
+  #kable("html", escape = FALSE, align = "c", caption = "Songs With Highest Total Word Count") %>%
+  #kable_styling(bootstrap_options = c("striped", "condensed", "bordered"), full_width = FALSE)
+  # Render DT datatable
+  datatable(class = "cell-border stripe", filter = 'top', caption = 'Songs With Highest Total Word Count',
+          rowname = FALSE, options = list(autoWidth = TRUE, searching = TRUE, pageLength = 5))  
 
 ```
+
 &nbsp;
 
 While this table shows us the raw individual word counts for each song, it doesn't clearly illustrate the Artist-Album groupings and total word counts for Artist-Album. Some questions here:
@@ -695,7 +742,7 @@ While this table shows us the raw individual word counts for each song, it doesn
 * How many songs do we have for each Artist & Album?
 * What is the "wordiest" album in the collection? Could this be used as a basic indicator of the balance between story telling and sound engineering?
 
-We must be careful here about using total word counts. Considering Daft Punk’s Discovery had many songs excluded due to them being instrumental, there are less songs available to contribute to an overall word count.
+We must be careful here about using total word counts. Considering **Daft Punk’s Discovery** had 8 of 14 songs excluded due to them being instrumental, there are less songs available to contribute to an overall word count.
 
 &nbsp;
 ```{r "Exploration_AlbumWordCountGantt", echo=FALSE, eval=TRUE, out.width = "100%", fig.width=14, fig.height=8}
@@ -718,16 +765,27 @@ gantt_wrap(wrk.02_TextAnalysis_03_QDAPWordCount,
 
 ```
 
+From this visualisation:
+
+ * Daft Punk's Discovery has 6 songs with lyrics, total word duration of just under 1500.
+ * Elton John's Honky Chateau has 10 songs with lyrics, total word duration of just over 1500.
+ * Iron Maiden's Powerslave has 7 songs with lyrics, total word duration of just under 2000.
+ * Killswitch Engage's Alive or Just Breathing has 12 songs with lyrics, total word duration of just under 1400.
+ * Led Zeppelin's Physical Graffiti has 13 songs with lyrics, total word duration of near 3000.
+ * U2's The Joshua Tree has 11 songs with lyrics, total word duration of just under 2000.
+
+There's not enough information here to draw any meaninful conclusions about story telling or proving the collection is eclectic. However it is interesting to note the variance of word counts between songs. It seems a song can be of any word length between 0 (instrumental) and 650 (or even more) words, and an album compilation can have any number of songs listed. There is no consistency between the artists on either of these observations. 
+
 &nbsp;
 
 
-**d. Wordclouds**
+### **d. Wordclouds**
 
 We can visualise the raw word counts using word clouds. The intention here is to get some initial, basic insight as to the common words for each artist & album. 
 
 We do need to be careful with the usage and context of these visualisations here because we know some songs were designed for repetition and certain words will dominate for this reason.
 
-For this section we will use the `wordcloud` package and create some word clouds.
+For this section I will use the `wordcloud` package to create the word clouds for each artist and album.
 
 &nbsp;
 ```{r "Exploration_WordClouds_00", echo=FALSE, eval=TRUE, fig.width=5, fig.height=5}
@@ -824,7 +882,15 @@ wordcloud(albums_wordcloud_IronMaiden$word, albums_wordcloud_IronMaiden$n, min.f
 
 &nbsp;
 
-**e. Lexical diversity (vocabulary)**
+On initial observeration of these word clouds:
+ * There is an observable difference in word choice & vocabulary used between artists.See Led Zeppelin's relaxed usage of "mama" and "baby" versus the articulate words from Iron Maiden "mariner", "village".
+ * Seemingly larger sized word cloud with more defined words of Elton John versus a smaller word cloud with less defined words in Daft Punk.
+ * Perceived similar, synonymous word usage between U2 and Killswitch Engage: "heart", "eyes". "life" versus "love".
+
+
+&nbsp;
+
+### **e. Lexical diversity (vocabulary)**
 
 Time to explore the depth of each song's lyrical vocabulary, we will refer to this as _"lexical diversity"_.
 
@@ -856,8 +922,13 @@ LexicalDensity_01 <- wordToken %>%
 
 LexicalDensity_01 %>%
   arrange(desc(word_count)) %>%
-  kable("html", escape = FALSE, align = "c", caption = "Lexical (Vocabulary) Diversity for Each Artist, Album and Song") %>%
-  kable_styling(bootstrap_options = c("striped", "condensed", "bordered"), full_width = FALSE)
+  #kable("html", escape = FALSE, align = "c", caption = "Lexical (Vocabulary) Diversity for Each Artist, Album and Song") %>%
+  #kable_styling(bootstrap_options = c("striped", "condensed", "bordered"), full_width = FALSE)
+  datatable(class = "cell-border stripe", filter = 'top', caption = 'Lexical (Vocabulary) Diversity for Each Artist, Album and Song',
+          rowname = FALSE, options = list(autoWidth = TRUE, searching = TRUE, pageLength = 5))  
+
+
+
 
 library(yarrr)
 #Lets draw the plot
@@ -883,6 +954,8 @@ pirateplot(formula =  word_count ~ CATMusicArtist, #Formula
            cex.lab = 1, cex.names = .9) #Axis label size
 ```
 
+In this visualisation, each dot represents a song on the artist's album, plotted by its total distinct (unique) count of words used. The black horizontal lines measure the average count of distinct words used for the artist & album.
+
 It becomes immediately obvious, **Iron Maiden's Powerslave** contains a range of more and less lexically dense songs.
 Iron Maiden's song **"Rime of the Ancient Mariner"** is by far an outlier in this visualisation, at **167** distinct words.
 
@@ -893,9 +966,9 @@ In the mid-range of the lexical diversity we see Elton John, Led Zeppelin and U2
 &nbsp;
 
 
-**f.  Song lyrics self-similarity matrices (SongSim) & repetition**
+### **f.  Song lyrics self-similarity matrices (SongSim) & repetition**
 
-We have observed the lexical diversity for our collection of songs. Let's now take a look at lyrical repetition.
+We have observed the lexical diversity for our collection of songs. Let's now take a look at lyrical repetition within individual songs and observe for consistencies within and across albums.
 
 Measuring and observing lyrical (or word) repetition is very relevant for this analysis as our context is music. Repetition can be observed in both instrumental waveforms and in lyrical structure. Ever had a song stuck in your head, repeating over and over? 
 
@@ -1002,8 +1075,10 @@ We can create songsim matrices for our collection of songs and then compare `rep
 
 Song_Repetition_DF %>%
   arrange(desc(SongSim_Repetition)) %>%
-  kable("html", escape = FALSE, align = "c", caption = "SongSim Lyrical Repetitiveness for Each Song by Artist") %>%
-  kable_styling(bootstrap_options = c("striped", "condensed", "bordered"), full_width = FALSE)
+  #kable("html", escape = FALSE, align = "c", caption = "SongSim Lyrical Repetitiveness for Each Song by Artist") %>%
+  #kable_styling(bootstrap_options = c("striped", "condensed", "bordered"), full_width = FALSE)
+  datatable(class = "cell-border stripe", filter = 'top', caption = 'SongSim Lyrical Repetitiveness for Each Song by Artist',
+          rowname = FALSE, options = list(autoWidth = TRUE, searching = TRUE, pageLength = 5))  
 
 
 library(yarrr)
@@ -1029,32 +1104,34 @@ pirateplot(formula =  SongSim_Repetition ~ CATMusicArtist, #Formula
            cex.lab = 1, cex.names = .9) #Axis label size
 ```
 
+In this visualisation, each dot represents a song on the artist's album, plotted by its lyrical `repetitiveness` score. The black horizontal lines measure the average song lyrical `repetitiveness` for the artist & album. A measure of 0.0 (0%) means each word in the song is unique, nothing is the same. A measure of 1.0 (100%) means the song is completely repetitive, i.e. a song with only one word used throughout the whole song.
+
 Is it so surprising to see **Daft Punk's Discovery** with the highest average lyrical repetitiveness? Interesting it also has the widest range of repetitiveness.
 
 Curious to observe **U2's The Joshua Tree** has the lowest average and the smallest range of lyrical repetitiveness. The grouping of songs appear to be very consistent in terms of lyrical repetition.
 
 
-So what do all of these songs look like as SongSim matrices? We have an opportunity here to create some _"data art"_.
+So what do all of these songs look like as SongSim matrices? We have an opportunity here to create some _"data art"_, and also observe each of these songs visually on one canvas.
 
-[Click here to see the SongSim poster we created for the collection of songs in this analysis](https://github.com/breemclennan/music_lyric_analysis/blob/master/Data/Processed/SongSim_AllSongsJPG_RESIZE.jpg).
+[Click here to see the SongSim poster we created for the collection of songs in this analysis](https://github.com/breemclennan/music_lyric_analysis/blob/master/Data/Processed/SongSim_AllSongsJPG_RESIZE_v1.jpg).
 
 &nbsp;
 
 Some notable mentions from the "SongSim Matrix Poster":
 
-* Entire patterned square: Daft Punk's "Harder, Better, Faster, Stronger" is a great example of visualised pop music. The chorus is basically the entire song. 
-* Small checkerboard-like patterns: Most of Elton John's songs only have a small number of words within a repetition.
+* Entire patterned square: Daft Punk's "Harder, Better, Faster, Stronger" is a great example of visualised pop music. The chorus is basically the entire song. Daft Punk's "One more time" and "Too long" also fit this description and pattern. 
+* Small checkerboard-like patterns: Most of Elton John's songs only have a small number of words within a repetition, see "Salvation" and "Hercules".
 * Verses and Bridges "gutter" patterns: Most of Iron Maiden's and U2's songs appear to follow an `into - verse - chorus - verse - chorus - outro` pattern
 * Broken Diagonal patterns: Most of Killswitch Engages's songs suggest a variation on the chorus or another major repeating section. Most of their songs are structured with `verse - chorus - verse - chorus`, but at the very end, some words moved around or swapped out.
-* Hybrid of "gutter" and "broken diagonal"" patterns: Very much Led Zeppelin.
-
+* Hybrid of "gutter" and "broken diagonal" patterns: Very much Led Zeppelin.
+* No two songs "look" the same. There may be similarities in terms of sections of patterns, but when lyric structure, lyric repetitiveness, and vocabulary are observed together, the songs are truly different from one another.
 
 This has certainly uncovered some very interesting insights about how the songs in the collection are structured, and maybe even shed some light on the Artist's preferences toward lyrical song writing.
 
 
 &nbsp;
 
-**g.  Term Frequency Inverse Document Frequency (TF-IDF)**
+### **g.  Term Frequency Inverse Document Frequency (TF-IDF)**
 
 Let's now address quantifying how important various lyrics (words) are in a song with respect to an album.
 
@@ -1090,6 +1167,8 @@ tidy_MusicLyrics %>% #check the word list and identify any further words to filt
 
 &nbsp;
 
+&nbsp;
+
 ```{r "Exploration_TFIDF_Plots", echo=FALSE, eval=TRUE, fig.width=10, fig.height=7}
 MusicLyrics_tf_idf <- tidy_MusicLyrics %>%
   count(CATMusicArtist, word, sort = TRUE) %>%
@@ -1100,8 +1179,12 @@ MusicLyrics_tf_idf <- tidy_MusicLyrics %>%
   ungroup()
 
 MusicLyrics_tf_idf %>%
-  kable("html", escape = FALSE, align = "c", caption = "TF, IDF and TF-IDF scores for collection of songs and albums") %>%
-  kable_styling(bootstrap_options = c("striped", "condensed", "bordered"), full_width = FALSE)
+  #kable("html", escape = FALSE, align = "c", caption = "TF, IDF and TF-IDF scores for collection of songs and albums") %>%
+  #kable_styling(bootstrap_options = c("striped", "condensed", "bordered"), full_width = FALSE)
+  datatable(class = "cell-border stripe", filter = 'top', caption = 'TF, IDF and TF-IDF scores for collection of songs and albums',
+          rowname = FALSE, options = list(autoWidth = TRUE, searching = TRUE, pageLength = 5))  
+
+
 
 MusicLyrics_tf_idf %>%
   mutate(word = reorder(word, tf_idf)) %>%
@@ -1144,7 +1227,7 @@ Natural Language Processing (NLP) is another methodology used in mining text. It
 
 &nbsp;
 
-**a.  NRC Emotional Sentiment**
+### **a.  NRC Emotional Sentiment**
 
 There are different methods which can be used for sentiment analysis. For this analysis we will explore our collection of songs using a predefined lexical dictionary (lexicon) named `NRC`.
 
@@ -1232,7 +1315,7 @@ Equally for **Killswitch Engage's Alive or Just Breathing**, this album tells st
 
 &nbsp;
 
-**b. NGrams, bi-grams & tri-grams**
+### **b. NGrams, bi-grams & tri-grams**
 
 Earlier in this analysis we explored single word (or unigram) frequency counts. This section is dedicated to exploring what precedes and follows the most common words we have identified in our collection of songs.
 
@@ -1312,7 +1395,7 @@ The lasting "sentiments" from observing these bi-grams and tri-grams:
 &nbsp;
 
 
-**c. Bi-gram network analysis**
+### **c. Bi-gram network analysis**
 
 From our Bi-Gram constructs we can create a network graph using the `ggraph` and `igraph` packages. We can arrange words into connected nodes, with selected "centering words" at the centers.
 
@@ -1365,7 +1448,7 @@ For any songwriter's out there, perhaps this could be useful in identifying lyri
 &nbsp;
 
 
-**d.  Pair-wise comparisons**
+### **d.  Pair-wise comparisons**
 
 Which songs are similar to each other in lyrical content? We can explore this by finding the pairwise correlation of lyric (word) frequencies within each song, using the `pairwise_cor()` function from the `widyr` package.
 
@@ -1391,8 +1474,10 @@ song_cors <- wrk.02_TextAnalysis_03_CommonWordsSong %>%
   pairwise_cor(CATTrackName, word, n, sort = TRUE)
 
 song_cors %>%
-  kable("html", escape = FALSE, align = "c", caption = "Pairwise Correlation - Song Links by Words Used") %>%
-  kable_styling(bootstrap_options = c("striped", "condensed", "bordered"), full_width = FALSE)
+  #kable("html", escape = FALSE, align = "c", caption = "Pairwise Correlation - Song Links by Words Used") %>%
+  #kable_styling(bootstrap_options = c("striped", "condensed", "bordered"), full_width = FALSE)
+  datatable(class = "cell-border stripe", filter = 'top', caption = 'Pairwise Correlation - Song Links by Words Used',
+          rowname = FALSE, options = list(autoWidth = TRUE, searching = TRUE, pageLength = 5))  
 
 set.seed(4321)
 
@@ -1418,7 +1503,7 @@ Interesting that no other songs had a high enough correlation in the pairwise ca
 
 &nbsp;
 
-**e.  Album similarity**
+### **e.  Album similarity**
 
 Using the `QDAP` package we have access to a function called `trans_venn()`. Since we just observed pairwise correlations between songs, let's take a look at similarity between albums, visualised as a venn diagram.
 
@@ -1430,7 +1515,7 @@ It appears **U2's The Joshua Tree** is a versatile linking centroid in this venn
 
 &nbsp;
 
-**f. Song dissimilarity (agreement between lyrics)**
+### **f. Song dissimilarity (agreement between lyrics)**
 
 Just like the album similarity we calculated in the previous section, we can do something similar for songs. Still using the `QDAP` package, we can use the `Dissimilarity()` function. We can perform dissimilarity statistics, using the distance function to calculate dissimilarity statistics by grouping variables.
 
@@ -1459,7 +1544,7 @@ Curious how there is one large cluster in the middle, illustrated with the green
 
 &nbsp;
   
-**a. Topic modelling: Structured Topic Modelling (STM)**
+### **a. Topic modelling: Structured Topic Modelling (STM)**
 
 Topic modelling is a method for unsupervised classification of documents, similar to clustering on numeric data, which finds natural groups of items even when we’re not sure what we’re looking for or what our target is.
 
@@ -1627,7 +1712,7 @@ Observing the results from the beta matrix, the topics, and music artist influen
   
 &nbsp;
 
-**a. Findings**
+### **a. Findings**
 
 Returning to our guiding questions:
 
@@ -1639,12 +1724,25 @@ Yes! Across the selected 6 music albums and 59 individual songs identified:
 * Some albums share similar themes, as we saw in the STM model and in the venn diagram.
 * Each artist (and album) has a particular preference in lyrical structure and word choice, as we saw in the SongSim matrices and Ngrams.
 
-Is it safe to say that this collection of songs is an example of an eclectic collection? Perhaps. Although, reality suggests that humans can find a way of proving and dis-proving similarity using a variety of configurable techniques.
+Is it safe to say that this collection of songs and albums is an example of an eclectic collection? Perhaps. Although, reality suggests that humans can find a way of proving and dis-proving similarity using a variety of configurable techniques.
+
+Having never listened to Iron Maiden's Powerslave album, this analysis has provided me with a much clearer understanding of what stories, derived meanings, and sentiments this album contains. That's pretty cool!
+
+Here's how this analysis has helped me make sense of this collection of music data:
+
+* **Daft Punk's Discovery** . There is lyrical evidence this album was engineered for sound and audio experience rather than wordy storytelling. There is low lexical diversity. High lyrical repetition. Emotional sentiment pointing well into the positive. There's a high instrumental song count on the album compilation. The songs which do have lyrics tend to centre around one or two key words and are examples of songs which get stuck in our heads.
+* **Killswitch Engage's Alive or Just Breathing**. This album shows signs of being engineered for a different kind of sound experience to that of Daft Punk. It has lower lexical diversity count (like Daft Punk) but has an emotional sentiment well into the negative. Keyword emphasis is different, indicating the vocal “growling” of lyrics and so careful selection of words to achieve this purpose could be what we are observing in a lower vocabulary range.
+* **Elton John's Honky Chateu**.
+* **Led Zeppelin's Physical Graffiti**.
+* **U2's The Joshua Tree**.
+* **Iron Maiden's Powerslave**.
+
+
 
 &nbsp;
 
 
-**b. Learnings, gotchas, traps for young players**
+### **b. Learnings, gotchas, traps for young players**
 
 Two key lessons I picked up on preparing this analysis:
 
@@ -1654,7 +1752,7 @@ Two key lessons I picked up on preparing this analysis:
 
 &nbsp;
 
-**c. Where to next & part 2**
+### **c. Where to next & part 2**
 
 There were a few elements in this analysis we could unpack further, such as:
 
@@ -1689,19 +1787,22 @@ Many hours have been spent researching approaches for designing and writing this
 
 **Text mining, NLP and Machine Learning with Music Lyrics**
 
-[Prince analysis - NLP](https://www.datacamp.com/community/tutorials/R-nlp-machine-learning)
+  [Prince analysis - NLP](https://www.datacamp.com/community/tutorials/R-nlp-machine-learning)
 
-[Prince analysis - Sentments](https://www.datacamp.com/community/tutorials/sentiment-analysis-R)
+  [Prince analysis - Sentments](https://www.datacamp.com/community/tutorials/sentiment-analysis-R)
 
-[The Ramones](http://r-blog.salvaggio.net/?p=521)
+  [The Ramones](http://r-blog.salvaggio.net/?p=521)
 
-[Rick and Morty](http://tamaszilagyi.com/blog/a-tidy-text-analysis-of-rick-and-morty/)
+  [Rick and Morty](http://tamaszilagyi.com/blog/a-tidy-text-analysis-of-rick-and-morty/)
 
-[50 Years of Pop Music Lyrics](https://github.com/walkerkq/musiclyrics)
+  [50 Years of Pop Music Lyrics](https://github.com/walkerkq/musiclyrics)
 
-[Radiohead & Using the Spotify API](http://www.rcharlie.com/post/fitter-happier/)
+  [Radiohead & Using the Spotify API](http://www.rcharlie.com/post/fitter-happier/)
 
-[Alternative sentiment analysis: Using the “gloom” index to find depressing songs](http://blog.revolutionanalytics.com/2017/02/finding-radioheads-most-depressing-song-with-r.html)
+  [Alternative sentiment analysis: Using the “gloom” index to find depressing songs](http://blog.revolutionanalytics.com/2017/02/finding-radioheads-most-depressing-song-with-r.html)
 
-[Alternative visualisations: Visualising songs as matrix structures and find repetitions](http://giorasimchoni.com/2017/10/16/2017-10-16-repeat-yourself-the-songsim-package/)
+  [Alternative visualisations: Visualising songs as matrix structures and find repetitions](http://giorasimchoni.com/2017/10/16/2017-10-16-repeat-yourself-the-songsim-package/)
 
+  [Topic Modeling of Sherlock Holmes Stories](https://juliasilge.com/blog/sherlock-holmes-stm/)
+
+  [Topic modeling using STM](http://thomaselliott.me/pdfs/earl/topic_modeling.html)

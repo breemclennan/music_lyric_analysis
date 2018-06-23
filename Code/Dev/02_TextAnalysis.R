@@ -703,7 +703,6 @@ b.G <- BiGrams %>%
   xlab('Bi-grams') +
   coord_flip() 
   
-
 b.G 
 
 t.G <- TriGrams %>%
@@ -720,6 +719,112 @@ t.G <- TriGrams %>%
   coord_flip() 
 
 t.G 
+
+# TM / QUANTEDA > TIDYTEXT INTELLIGENT NGRAM APPROACH
+library(tm)
+library(quanteda)
+library(tidytext)
+
+#Setup the dataset for ngram analysis. We don't want to keep the song title in the lyric sheet.
+#REF for text cleanup:http://rstudio-pubs-static.s3.amazonaws.com/256588_57b585da6c054349825cba46685d8464.html
+# Stopword definitions
+custom_stop_words <- c("chorus", "verse", tm::stopwords("en"))
+
+
+Ngrams_Dset_00 <- wrk.01_DataPrep_LyricsWithSpotify %>%
+  group_by(CATTrackName) %>%
+  filter(style_name == "body") %>%
+  mutate(TXTAllTrackLyrics = paste0(text, sep = ".", collapse = " ")) %>%
+  mutate(NUMMaxLyricLines = max(as.numeric(NUMTrackLyricLineNumber))) %>%
+  mutate(TXTAllTrackLyrics = tolower(TXTAllTrackLyrics)) %>% #make all text lower case
+  mutate(TXTAllTrackLyrics = removePunctuation(TXTAllTrackLyrics)) %>% #Remove all punctuation marks
+  #mutate(TXTAllTrackLyrics = removeNumbers(TXTAllTrackLyrics)) %>% #Remove numbers
+  mutate(TXTAllTrackLyrics = stripWhitespace(TXTAllTrackLyrics)) %>% #Remove excess whitespace
+  mutate(TXTAllTrackLyrics = qdap::bracketX(TXTAllTrackLyrics)) %>% #remove all text within brackets (e.g. “It’s (so) cool” becomes “It’s cool”)
+  mutate(TXTAllTrackLyrics = qdap::replace_number(TXTAllTrackLyrics)) %>%  #Replace numbers with their word equivalents (e.g. “2” becomes “two”)
+  mutate(TXTAllTrackLyrics = qdap::replace_abbreviation(TXTAllTrackLyrics)) %>% #Replace abbreviations with their full text equivalents (e.g. “Sr” becomes “Senior”)
+  mutate(TXTAllTrackLyrics = qdap::replace_contraction(TXTAllTrackLyrics)) %>% #Convert contractions back to their base words (e.g. “shouldn’t” becomes “should not”)
+  mutate(TXTAllTrackLyrics = qdap::replace_symbol(TXTAllTrackLyrics)) %>% #Replace common symbols with their word equivalents (e.g. “$” becomes “dollar”)
+  mutate(TXTAllTrackLyrics = tm::removeWords(TXTAllTrackLyrics, custom_stop_words))  #Remove stop words
+ #TODO see reference and add in stemming if appropriate
+
+
+#Filter out instrumental songs & keep only variables we need.
+Ngrams_Dset_01 <- Ngrams_Dset_00 %>%
+  filter(str_detect(TXTAllTrackLyrics, "Instrumental") == FALSE ) %>%
+  filter(row_number() <= 1) %>% # Select the first record for each song. This contains all lyrics for the song.
+  ungroup() %>%
+  # setup our primary key, record id counter
+  mutate(lineCount = row_number()) %>% 
+  select(lineCount, TXTAllTrackLyrics, CATMusicArtist, CATMusicAlbum, CATTrackName ) %>%
+  rename(doc_id = lineCount) %>%
+  rename(text = TXTAllTrackLyrics) %>%
+  mutate() #for later remerging with DTM results
+
+Ngram_DTM_Merge <- Ngrams_Dset_01 %>%
+  mutate(ID = doc_id) %>%
+  select(ID, CATMusicArtist, CATMusicAlbum, CATTrackName)
+
+
+#Make sure format is character for text
+#Ngrams_Dset_01$text <- as.character(Ngrams_Dset_01$text)
+
+TM_Corpus <- VCorpus(DataframeSource(Ngrams_Dset_01))
+
+# Manually keep ID information for Corpus from https://stackoverflow.com/a/14852502/1036500
+for (i in 1:length(TM_Corpus)) {
+  attr(TM_Corpus[[i]], "ID") <- Ngrams_Dset_01$doc_id[i]
+}
+
+#Ngram tokeniser fucntion setup ======
+library(RWeka)
+BigramTokenizer <- function(x) {RWeka::NGramTokenizer(x, RWeka::Weka_control(min = 2, max = 2))}
+TrigramTokenizer <- function(x) {RWeka::NGramTokenizer(x, RWeka::Weka_control(min = 3, max = 3))}
+
+#Clean up the corpus [USING THE TM AND QDAP text clean functions in dataframe setup. TM_MAP is removing doc_id attributes]
+#rmvNonEngGsub <- function(x) { gsub(pattern="[^[:alpha:]]", " ", x) }  # remove letters that are not A-Z or num
+#TM_Corpus <- tm_map(TM_Corpus, rmvNonEngGsub)
+#TM_map functions are removing the doc_id attributes
+#MyCorpus <- tm_map(TM_Corpus, content_transformer(tolower)) 
+#TM_Corpus <- tm_map(TM_Corpus, removeNumbers) 
+#TM_Corpus <- tm_map(TM_Corpus, removePunctuation) 
+#TM_Corpus <- tm_map(TM_Corpus, removeWords, stopwords('english')) 
+#TM_Corpus <- tm_map(TM_Corpus, removeWords, stopwords(source = "smart")) 
+#TM_Corpus <- tm_map(TM_Corpus, stemDocument, language = "english") 
+#TM_Corpus <- tm_map(TM_Corpus, PlainTextDocument) 
+
+dtm_bigram <- DocumentTermMatrix(TM_Corpus, control = list(tokenize = BigramTokenizer, wordLengths = c(3,30)))
+inspect(dtm_bigram)
+
+#Merge the DTM back onto the original dataframe by doc_id
+dtm_bigram_df <- data.frame(as.matrix(dtm_bigram))
+# merge by row.names from https://stackoverflow.com/a/7739757/1036500
+dtm_bigram_df_merged <- base::merge(Ngram_DTM_Merge, dtm_bigram_df, by.x = "ID", by.y = "row.names" )
+head(dtm_bigram_df_merged)
+
+#Gather the dataset (transpose wide to long)
+dtm_bigram_df_final <- dtm_bigram_df_merged  %>%
+  gather(BiGram, Value, -ID, -CATMusicArtist, -CATMusicAlbum, -CATTrackName) %>%
+  group_by(CATMusicArtist) %>%
+  arrange(desc(Value)) %>%
+  ungroup()
+
+str(dtm_bigram_df_final)
+
+Bigrams <- dtm_bigram_df_final %>%
+  group_by(CATMusicArtist) %>%
+  slice(1:10) %>%
+  ungroup() %>%
+  #to reorder the x axis by sum of n, add in reorder() to aes(x= ..)
+  ggplot(aes(x = reorder(BiGram, Value, sum), Value, fill = CATMusicArtist)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ CATMusicArtist, scales = "free") +
+  ylab("Most Frequent bi-Grams") +
+  xlab('Bi-grams') +
+  coord_flip() 
+
+Bigrams
+
 
 #========== BI-GRAM NETWORK
 

@@ -621,7 +621,6 @@ glimpse(wrk.02_TextAnalysis_02)
 
 From this dataset, the most important variables we will be using frequently will be:
 
-* **doc_index**, the primary key of the source dataset. This will become particularly useful for creating a corpus and performing ngram analysis.
 * **text** & **TXTAllTrackLyrics**, usage will depend on the character string structure we need for text analysis functions.
 * **CATMusicArtist**, our main grouping variable.
 * **CATMusicAlbum**, our secondary grouping variable.
@@ -768,12 +767,12 @@ gantt_wrap(wrk.02_TextAnalysis_03_QDAPWordCount,
 
 From this visualisation:
 
- * Daft Punk's Discovery has 6 songs with lyrics, total word duration of just under 1500.
- * Elton John's Honky Chateau has 10 songs with lyrics, total word duration of just over 1500.
- * Iron Maiden's Powerslave has 7 songs with lyrics, total word duration of just under 2000.
- * Killswitch Engage's Alive or Just Breathing has 12 songs with lyrics, total word duration of just under 1400.
- * Led Zeppelin's Physical Graffiti has 13 songs with lyrics, total word duration of near 3000.
- * U2's The Joshua Tree has 11 songs with lyrics, total word duration of just under 2000.
+ * **Daft Punk's Discovery** has 6 songs with lyrics, total word duration of just under 1500.
+ * **Elton John's Honky Chateau** has 10 songs with lyrics, total word duration of just over 1500.
+ * **Iron Maiden's Powerslave** has 7 songs with lyrics, total word duration of just under 2000.
+ * **Killswitch Engage's Alive or Just Breathing** has 12 songs with lyrics, total word duration of just under 1400.
+ * **Led Zeppelin's Physical Graffiti** has 13 songs with lyrics, total word duration of near 3000.
+ * **U2's The Joshua Tree** has 11 songs with lyrics, total word duration of just under 2000.
 
 There's not enough information here to draw any meaninful conclusions about story telling or proving the collection is eclectic. However it is interesting to note the variance of word counts between songs. In general, it seems a song can be of any word length between 0 (instrumental) and 650 (or even more) words, and an album compilation can have any number of songs listed. There is no consistency between the artists on either of these observations. 
 
@@ -886,9 +885,9 @@ wordcloud(albums_wordcloud_IronMaiden$word, albums_wordcloud_IronMaiden$n, min.f
 On initial observeration of these word clouds:
 
  * All of these wordclouds are visually different and unique! This view shows us on broad, face value the collection of artists, albums and songs in the dataset are an **eclcectic** collection.
- * There is an observable difference in word choice & vocabulary used between artists. See Led Zeppelin's relaxed usage of "mama" and "baby" versus the articulate words from Iron Maiden "mariner", "village".
- * Seemingly larger sized/rendering area word cloud with more defined words of Elton John versus a smaller word cloud with less defined words in Daft Punk.
- * Perceived similar (but not precisely the same), synonymous word usage between U2 and Killswitch Engage: "heart", "eyes". "life" versus "love".
+ * There is an observable difference in word choice & vocabulary used between artists. See **Led Zeppelin's** relaxed usage of "mama" and "baby" versus the articulate words from **Iron Maiden** "mariner", "village".
+ * Seemingly larger sized/rendering area word cloud with more defined words of Elton John versus a smaller word cloud with less defined words in **Daft Punk**.
+ * Perceived similar (but not precisely the same), synonymous word usage between **U2** and **Killswitch Engage**: "heart", "eyes". "life" versus "love".
 
 
 &nbsp;
@@ -963,7 +962,7 @@ It becomes immediately obvious, **Iron Maiden's Powerslave** contains a range of
 
 On the lower end of the scale, **Daft Punk's Discovery** and **Killswitch Engage's Alive or Just Breathing** appear to have a smaller vocabulary. Some human experiential insights from these musical compositions suggest that these albums are very engineered for audio experience. **Daft Punk's Discovery** could be described as a dance record, while **Killswitch Engage's Alive or Just Breathing** may have been designed to get the most out of vocally _"growling"_ lyrics and so careful selection of words to achieve this purpose could be what we are observing in a lower vocabulary range.
 
-In the mid-range of the lexical diversity we see Elton John, Led Zeppelin and U2, perhaps this is where the balance between audio experience and story telling can be observed?
+In the mid-range of the lexical diversity we see **Elton John, Led Zeppelin** and **U2**, perhaps this is where the balance between audio experience and story telling can be observed?
 
 With this measure and perspective, we begin to see some similarities emerging between the artists and albums. The notion this is an eclectic grouping of music begins to have a counter argument.
 
@@ -984,7 +983,7 @@ SongSim uses self-similarity matrices to visualise patterns of repetition in tex
 
 A self-similarity matrix is used to answer the question "which parts of this text thing are alike?".
 
-To get started, let's setup our process flow for SongSim and take a look at Led Zeppelin's Kashmir.
+To get started, let's setup our process flow for SongSim and take a look at **Led Zeppelin's "Kashmir"**.
 
 &nbsp;
 ```{r "Exploration_SongSim_KashmirInteractive", echo=FALSE, eval=TRUE, fig.width=6, fig.height=6}
@@ -1010,7 +1009,7 @@ resLedZepKashmir <- songsim(path = (F("Data/Raw/SongSim_LedZepKashmir.txt")),int
 ```
 &nbsp;
 
-Most of Kashmir has very little lyrical repetition. This can be seen in the songsim matrix plot, where the "dots" form a weak and very sparse pattern. The lack of lyrical repetition is also observed by reading the lyric sheet. I find this a curious song to analyse. The element which strikes me the most is actually the **sound** of the song, it has a very repetitious component to it. When I listen to Kashmir it is this element of sound that I notice "gets stuck in my head", and not the low-repetition lyrics! In the TV series "It might get loud", **Jimmy Page** describes the guitar sound of Kashmir:
+Most of "Kashmir" has very little lyrical repetition. This can be seen in the songsim matrix plot, where the "dots" form a weak and very sparse pattern. The lack of lyrical repetition is also observed by reading the lyric sheet. I find this a curious song to analyse. The element which strikes me the most is actually the **sound** of the song, it has a very repetitious component to it. When I listen to Kashmir it is this element of sound that I notice "gets stuck in my head", and not the low-repetition lyrics! In the TV series "It might get loud", **Jimmy Page** describes the guitar sound of Kashmir:
 
 > "...it has this riff which is circling around, then a cascade which goes over the top and hits this atonal point. It's one of those real hypnotic riffs."
 
@@ -1223,14 +1222,6 @@ With respect to the hypothesis on an eclectic grouping of music, we can clearly 
 
 This measure is performing as expected and doesn't tell us anything new. However, this can still be useful information to be aware of prior to designing and training any models and exploring topic modelling.
 
-Some questions we can ask before heading into sentiment analysis and machine learning:
-
-1. Do we need to perform more data preparation?
-2. Stemming: do we need to remove suffixes from words and reduce down to the common word origin? Is it appropriate?
-3. Lemmatization: do we need to remove inflectional endings of words, and return the base or dictionary form of a word (which is known as the lemma)? 
-4. Advanced concept in sentiment analysis: Is it appropriate to simply replace some certain words with more frequently used synonyms (semantically similar peers) and/or hypernyms (common parents)? This would be used to address lexicon word matching challenges, between the words in the text versus the lexicon used.
-5. Do we need to construct our own lexicon for the sentiment analysis?
-
 &nbsp;
 
 
@@ -1240,16 +1231,24 @@ Sentiment analysis is a type of text mining which aims to determine the opinion 
 
 Natural Language Processing (NLP) is another methodology used in mining text. It tries to decipher the ambiguities in written language by tokenization, clustering, extracting entity and word relationships, and using algorithms to identify themes and quantify subjective information. This analysis in earlier sections touched on the basics of NLP, via exploring the lexical complexity of song lyrics (word frequencies, lexical diversity "vocabulary" and lexical density "repetition").
 
+At this point, there are some important questions to consider before commencing with sentiment analysis and machine learning:
+
+1. Do we need to perform more data preparation?
+2. Stemming: do we need to remove suffixes from words and reduce down to the common word origin? Is it appropriate?
+3. Lemmatization: do we need to remove inflectional endings of words, and return the base or dictionary form of a word (which is known as the lemma)? 
+4. Advanced concept in sentiment analysis: Is it appropriate to simply replace some certain words with more frequently used synonyms (semantically similar peers) and/or hypernyms (common parents)? This would be used to address lexicon word matching challenges, between the words in the text versus the lexicon used.
+5. Do we need to construct our own lexicon for the sentiment analysis, or will off-the-shelf packaged lexicons be appropriate to use?
+
+
 &nbsp;
 
 ### **a.  NRC Emotional Sentiment**
 
 There are different methods which can be used for sentiment analysis. For this analysis we will explore our collection of songs using a predefined lexical dictionary (lexicon) named `NRC`.
 
-The NRC lexicon assigns words into one or more of ten categories: positive, negative, anger, anticipation, disgust, fear, joy, sadness, surprise, and trust.
+NRC is the Word-Emotion Association Lexicon. It assigns words into one or more of ten categories: positive, negative, anger, anticipation, disgust, fear, joy, sadness, surprise, and trust.
 
 We will use the `tidytext` package and call in the `NRC` lexicon by using the `get_sentiments()` function when creating our data frame.
-
 
 Let's observe how the NRC lexicon triages our song lyric words into the emotional sentiments.
 
@@ -1295,7 +1294,9 @@ SongSentiment_TidyText_NRC %>%
 
 This is a very dense visualisation, difficult to distinguish any clear patterns.
 
-Let's summarise this down to word counts by emotional sentiment.
+Let's summarise this down to word counts by emotional sentiment for each artis and then consider this question:
+
+How do these album's make us feel when we listen to them?
 
 &nbsp;
 
@@ -1321,11 +1322,19 @@ wordToken %>%
 ```
 &nbsp;
 
-So how do these album's make us feel when we listen to them?
+This visualisation paints an "emotional profile"" picture for each artist and album. This illustrates for us that no two artists have the exact same emotional profile.
 
-I have always suspected **Daft Punk's Discovery** to be jovial and energetic. I am glad to see anticipation, joy and trust rate highly for this album.
+I have always suspected **Daft Punk's Discovery** to be jovial and energetic. I am glad to see anticipation, joy and trust rate highly for this album. This is a nice validation of my own personal opinion.
 
 Equally for **Killswitch Engage's Alive or Just Breathing**, this album tells stories with much sadness, anger and fear. Not very surprising these emotions rate highly for this album.
+
+There are some faint similarities of emotional profile patterns between:
+
+ * **Daft Punk** and **Led Zeppelin** - Anticipation, Joy and Trust rate the highest with these artists.
+ * **Killswitch Engage** and **Iron Maiden** - Fear, Sadness and Anger rate the highest with these artists.
+
+
+From an emotional sentiment perspective this collection of artists and albums are unique, and diverse enough to label as an eclectic grouping. 
 
 
 &nbsp;

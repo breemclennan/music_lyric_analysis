@@ -765,10 +765,7 @@ Ngram_DTM_Merge <- Ngrams_Dset_01 %>%
   mutate(ID = doc_id) %>%
   select(ID, CATMusicArtist, CATMusicAlbum, CATTrackName)
 
-
-#Make sure format is character for text
-#Ngrams_Dset_01$text <- as.character(Ngrams_Dset_01$text)
-
+#Create the tm VCorpus so RWeka ngram will work correctly
 TM_Corpus <- VCorpus(DataframeSource(Ngrams_Dset_01))
 
 # Manually keep ID information for Corpus from https://stackoverflow.com/a/14852502/1036500
@@ -793,14 +790,25 @@ TrigramTokenizer <- function(x) {RWeka::NGramTokenizer(x, RWeka::Weka_control(mi
 #TM_Corpus <- tm_map(TM_Corpus, stemDocument, language = "english") 
 #TM_Corpus <- tm_map(TM_Corpus, PlainTextDocument) 
 
+#BIGRAM DOCUMENT TERM MATRIX
 dtm_bigram <- DocumentTermMatrix(TM_Corpus, control = list(tokenize = BigramTokenizer, wordLengths = c(3,30)))
 inspect(dtm_bigram)
 
+#TRIGRAM DOCUMENT TERM MATRIX
+dtm_trigram <- DocumentTermMatrix(TM_Corpus, control = list(tokenize = TrigramTokenizer, wordLengths = c(3,30)))
+inspect(dtm_trigram)
+
 #Merge the DTM back onto the original dataframe by doc_id
 dtm_bigram_df <- data.frame(as.matrix(dtm_bigram))
+dtm_trigram_df <- data.frame(as.matrix(dtm_trigram))
+
 # merge by row.names from https://stackoverflow.com/a/7739757/1036500
-dtm_bigram_df_merged <- base::merge(Ngram_DTM_Merge, dtm_bigram_df, by.x = "ID", by.y = "row.names" )
+dtm_bgram_df_merged <- base::merge(Ngram_DTM_Merge, dtm_bigram_df, by.x = "ID", by.y = "row.names" )
 head(dtm_bigram_df_merged)
+
+dtm_trigram_df_merged <- base::merge(Ngram_DTM_Merge, dtm_trigram_df, by.x = "ID", by.y = "row.names" )
+head(dtm_trigram_df_merged)
+
 
 #Gather the dataset (transpose wide to long)
 dtm_bigram_df_final <- dtm_bigram_df_merged  %>%
@@ -810,6 +818,15 @@ dtm_bigram_df_final <- dtm_bigram_df_merged  %>%
   ungroup()
 
 str(dtm_bigram_df_final)
+
+dtm_trigram_df_final <- dtm_trigram_df_merged  %>%
+  gather(TriGram, Value, -ID, -CATMusicArtist, -CATMusicAlbum, -CATTrackName) %>%
+  group_by(CATMusicArtist) %>%
+  arrange(desc(Value)) %>%
+  ungroup()
+
+str(dtm_trigram_df_final)
+
 
 Bigrams <- dtm_bigram_df_final %>%
   group_by(CATMusicArtist) %>%
@@ -824,6 +841,21 @@ Bigrams <- dtm_bigram_df_final %>%
   coord_flip() 
 
 Bigrams
+
+Trigrams <- dtm_trigram_df_final %>%
+  group_by(CATMusicArtist) %>%
+  slice(1:10) %>%
+  ungroup() %>%
+  #to reorder the x axis by sum of n, add in reorder() to aes(x= ..)
+  ggplot(aes(x = reorder(TriGram, Value, sum), Value, fill = CATMusicArtist)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ CATMusicArtist, scales = "free") +
+  ylab("Most Frequent Tri-Grams") +
+  xlab('Tri-grams') +
+  coord_flip() 
+
+Trigrams
+
 
 
 #========== BI-GRAM NETWORK

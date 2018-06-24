@@ -676,15 +676,15 @@ pvrect(fit2, alpha=.95)
 #wordToken <-  lineToken %>% 
   BiGrams <- lineToken %>%
   unnest_tokens(ngram, line, token = "ngrams", n = 2) %>%  #Break the lyrics into individual words
-  #anti_join(stop_words) %>% #removing stop words
-  #filter(!ngram %in% undesirable_words) %>%
+  anti_join(stop_words) %>% #removing stop words
+  filter(!ngram %in% undesirable_words) %>%
   group_by(CATMusicArtist,CATMusicAlbum, CATTrackName) %>%
   dplyr::count(ngram, sort = TRUE) %>%
   ungroup()
 
   TriGrams <- lineToken %>%
   unnest_tokens(ngram, line, token = "ngrams", n = 3) %>%  #Break the lyrics into individual words
-  #anti_join(stop_words) %>% #removing stop words
+  anti_join(stop_words) %>% #removing stop words
   filter(!ngram %in% undesirable_words) %>%
   group_by(CATMusicArtist,CATMusicAlbum, CATTrackName) %>%
   count(ngram, sort = TRUE) 
@@ -728,7 +728,7 @@ library(tidytext)
 #Setup the dataset for ngram analysis. We don't want to keep the song title in the lyric sheet.
 #REF for text cleanup:http://rstudio-pubs-static.s3.amazonaws.com/256588_57b585da6c054349825cba46685d8464.html
 # Stopword definitions
-custom_stop_words <- c("chorus", "verse", tm::stopwords("en"))
+custom_stop_words <- c("chorus", "verse", "lyrics", tm::stopwords("en"))
 
 
 Ngrams_Dset_00 <- wrk.01_DataPrep_LyricsWithSpotify %>%
@@ -803,7 +803,7 @@ dtm_bigram_df <- data.frame(as.matrix(dtm_bigram))
 dtm_trigram_df <- data.frame(as.matrix(dtm_trigram))
 
 # merge by row.names from https://stackoverflow.com/a/7739757/1036500
-dtm_bgram_df_merged <- base::merge(Ngram_DTM_Merge, dtm_bigram_df, by.x = "ID", by.y = "row.names" )
+dtm_bigram_df_merged <- base::merge(Ngram_DTM_Merge, dtm_bigram_df, by.x = "ID", by.y = "row.names" )
 head(dtm_bigram_df_merged)
 
 dtm_trigram_df_merged <- base::merge(Ngram_DTM_Merge, dtm_trigram_df, by.x = "ID", by.y = "row.names" )
@@ -862,14 +862,20 @@ Trigrams
 
 centre_words <- c("hey","feel","gonna","people","yeah","love","light","time", "life")
 
-#centre_words <- c("i","you","us","we", "they")
+#TM ngram method
+bigrams_separated_TM <- dtm_bigram_df_final %>%
+  mutate(BiGram = gsub(".", " ", BiGram, fixed = TRUE)) %>%
+  separate(BiGram, c("word1", "word2"), sep = " ")
 
+#tidytext ngram method
 bigrams_separated <- BiGrams %>%
   separate(ngram, c("word1", "word2"), sep = " ")
 
 library(tidytext)
-centre_bigrams <- bigrams_separated %>%
-  select(word1, word2, n) %>%
+library(ggraph)
+library(igraph)
+centre_bigrams <- bigrams_separated_TM %>% #using TM ngram method (Value = n)
+  select(word1, word2, Value) %>%
   filter(word1 %in% centre_words) %>%
   #inner_join(AFINN, by = c(word2 = "word")) %>%
   #count(word1, word2, sort = TRUE) %>%
@@ -891,7 +897,7 @@ a <- grid::arrow(type = "closed", length = unit(.10, "inches"))
 ggraph(bigram_graph, layout = "fr") +
   geom_edge_link() +
   geom_node_point(color = "lightblue", size = 5) +
-  geom_node_text(aes(label = name), vjust = 1, hjust = 1) +
+  geom_node_text(aes(label = name), vjust = 1, hjust = 1, repel = TRUE) +
   theme_void()
 
 #======= TIDY TEXT STM TOPIC MODELLING ============================

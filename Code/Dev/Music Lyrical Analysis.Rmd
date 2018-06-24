@@ -588,7 +588,7 @@ A few things we can observe and acknowledge so far:
 *	Some songs will be instrumental. The raw lyric sheets will only contain `“[Instrumental]”` for instrumental songs. We can filter these out of our analysis and re-use these in subsequent analysis. Perhaps for signal or beat detection analysis!
 * Each lyric “line” is meaningful in the flow of a song. Each line can be linked to subsequent lines via rhyming and context. We expect the lyric sheets to loosely resemble poetry and we expect a higher instance of repetition, because music is full of patterns (unless we’re dealing with some kind of random jam session or jazz genres!)
 *	The number of songs will vary per artist and album. Some albums will have more songs than others. We need to be mindful of any analysis utilising word counts or averages.
-* In reality, the lyrics are interwoven with an audio track. This analysis is like staring at words in segregated silence. With the audio track interwoven this adds the dimensions of time series, rhythm, verbal intonation and speech/verbal patterns, and emotional sentiment, all of which lead us to interpret the lyrics differently to how we would analysing lyrics in isolation. Think for a moment, when you recieve text based emails or text messages, the emotions, sentiment and context of the communication can be very difficult to convey in text format alone, the same message transmitted as sound can result in a very different reception. 
+* In reality, the lyrics are interwoven with an audio track. This analysis is like staring at words in segregated silence. With the audio track interwoven this adds the dimensions of time series, rhythm, verbal intonation and speech/verbal patterns, and emotional sentiment, all of which lead us to interpret the lyrics differently to how we would analysing lyrics in isolation. Think for a moment, when you receive text based emails or text messages, the emotions, sentiment and context of the communication can be very difficult to convey in text format alone, the same message transmitted as sound can result in a very different reception. 
 
 &nbsp;
 
@@ -638,8 +638,8 @@ Our dataset is almost ready for exploration. There's a few remaining data wrangl
 
   1. Manually identify any _"undesirable words"_ in the context of lyrics. Sometimes we see markers in the lyric sheets like "chorus", "verse", "repeat x3" etc.
   2. We have the option to remove stop words at this point, although I would like to leave them in for initial exploration to purely observe for now, and remove them when we begin more detailed text analysis.
-  3. Create lyric line tokens, split the lyrics into individual verses.
-  4. Create lyric word tokens, split the lyrics into individual words.
+  3. Create lyric line tokens, split the lyrics into individual verses, using the `tidytext` package.
+  4. Create lyric word tokens, split the lyrics into individual words, using the `tidytext` package.
   5. Create numeric counter of how many words per song, per album & artist.
 
 &nbsp;
@@ -774,7 +774,7 @@ From this visualisation:
  * **Led Zeppelin's Physical Graffiti** has 13 songs with lyrics, total word duration of near 3000.
  * **U2's The Joshua Tree** has 11 songs with lyrics, total word duration of just under 2000.
 
-There's not enough information here to draw any meaninful conclusions about story telling or proving the collection is eclectic. However it is interesting to note the variance of word counts between songs. In general, it seems a song can be of any word length between 0 (instrumental) and 650 (or even more) words, and an album compilation can have any number of songs listed. There is no consistency between the artists on either of these observations. 
+There's not enough information here to draw any meaningful conclusions about story telling or proving the collection is eclectic. However it is interesting to note the variance of word counts between songs. In general, it seems a song can be of any word length between 0 (instrumental) and 650 (or even more) words, and an album compilation can have any number of songs listed. There is no consistency between the artists on either of these observations. 
 
 &nbsp;
 
@@ -840,7 +840,7 @@ wordcloud(albums_wordcloud_Elton$word, albums_wordcloud_Elton$n, min.freq=1, ran
 
 ```
 
-**Led Zeppelin**
+**Led Zeppelin - Physical Graffiti**
 ```{r "Exploration_WordClouds_04", echo=FALSE, eval=TRUE, fig.width=5, fig.height=5}
 #==== Led Zeppelin
 albums_wordcloud_LedZep <- wrk.02_TextAnalysis_03_CommonWordsAlbum %>%
@@ -853,7 +853,7 @@ wordcloud(albums_wordcloud_LedZep$word, albums_wordcloud_LedZep$n, min.freq=1, r
 
 ```
 
-**Killswitch Engage**
+**Killswitch Engage - Alive or Just Breathing**
 ```{r "Exploration_WordClouds_05", echo=FALSE, eval=TRUE, fig.width=5, fig.height=5}
 
 #==== Killswitch Engage
@@ -867,7 +867,7 @@ wordcloud(albums_wordcloud_KsE$word, albums_wordcloud_KsE$n,min.freq=1, random.o
 
 ```
 
-**Iron Maiden**
+**Iron Maiden - Powerslave**
 ```{r "Exploration_WordClouds_06", echo=FALSE, eval=TRUE, fig.width=5, fig.height=5}
 #==== Iron Maiden
 albums_wordcloud_IronMaiden <- wrk.02_TextAnalysis_03_CommonWordsAlbum %>%
@@ -882,7 +882,7 @@ wordcloud(albums_wordcloud_IronMaiden$word, albums_wordcloud_IronMaiden$n, min.f
 
 &nbsp;
 
-On initial observeration of these word clouds:
+On initial observation of these word clouds:
 
  * All of these wordclouds are visually different and unique! This view shows us on broad, face value the collection of artists, albums and songs in the dataset are an **eclcectic** collection.
  * There is an observable difference in word choice & vocabulary used between artists. See **Led Zeppelin's** relaxed usage of "mama" and "baby" versus the articulate words from **Iron Maiden** "mariner", "village".
@@ -1114,10 +1114,11 @@ pirateplot(formula =  SongSim_Repetition ~ CATMusicArtist, #Formula
 
 In this visualisation, each dot represents a song on the artist's album, plotted by its lyrical `repetitiveness` score. The black horizontal lines measure the average song lyrical `repetitiveness` for the artist & album. A measure of 0.0 (0%) means each word in the song is unique, nothing is the same. A measure of 1.0 (100%) means the song is completely repetitive, i.e. a song with only one word used throughout the whole song.
 
-Is it so surprising to see **Daft Punk's Discovery** with the highest average lyrical repetitiveness? Interesting it also has the widest range of repetitiveness.
+Is it so surprising to see **Daft Punk's Discovery** with the highest average lyrical repetitiveness at `35%`? Interesting it also has the widest range of repetitiveness, between `12%` and `64%`.
 
-Curious to observe **U2's The Joshua Tree** has the lowest average and the smallest range of lyrical repetitiveness. The grouping of songs appear to be very consistent in terms of lyrical repetition.
+Curious to observe **U2's The Joshua Tree** has the lowest average at `15%` repetition and the smallest range of lyrical repetitiveness, between `10%` and `18%`. The grouping of songs appear to be very consistent in terms of lyrical repetition.
 
+Observing the similarities, **Elton John, Iron Maiden, Killswitch Engage** and **Led Zeppelin** all share an average level of repetitiveness between`20%` and `24%`.
 
 So what do all of these songs look like as SongSim matrices? We have an opportunity here to create some _"data art"_, and also observe each of these songs visually on one canvas.
 
@@ -1129,14 +1130,14 @@ Some notable mentions from the "SongSim Matrix Poster":
 
 * Entire patterned square: **Daft Punk's "Harder, Better, Faster, Stronger"** is a great example of visualised pop music. The chorus is basically the entire song. **Daft Punk's "One more time"** and **"Too long"** also fit this description and pattern. 
 * Small checkerboard-like patterns: Most of **Elton John's** songs only have a small number of words within a repetition, see "Salvation" and "Hercules".
-* Verses and Bridges "gutter" patterns: Most of **Iron Maiden's** and **U2's** songs appear to follow an `into - verse - chorus - verse - chorus - outro` pattern.
+* Verses and Bridges "gutter" patterns: Most of **Iron Maiden's** and **U2's** songs appear to follow an `intro - verse - chorus - verse - chorus - outro` pattern.
 * Broken Diagonal patterns: Most of **Killswitch Engages's** songs suggest a variation on the chorus or another major repeating section. Most of their songs are structured with `verse - chorus - verse - chorus`, but at the very end, some words moved around or swapped out.
 * Hybrid of "gutter" and "broken diagonal" patterns: Very much **Led Zeppelin**.
 * No two songs "look" the same. There may be similarities in terms of sections of patterns, but when lyric structure, lyric repetitiveness, and vocabulary are observed together, the songs are truly different from one another.
 
-This has certainly uncovered some very interesting insights about how the songs in the collection are structured, and maybe even shed some light on the Artist's preferences toward lyrical song writing.
+This has certainly uncovered some very interesting insights about how the songs in the collection are lyrically structured, and maybe even shed some light on the Artist's preferences toward lyrical song writing.
 
-The songsim matrices have done a great job of displaying how diverse each song (and therefore artist & album) is from a lyrical pattern and structure perspective. This gives strength to my hypothesis that the collection of music is eclectic!
+The songsim matrices have done a great job of displaying how diverse each song (and therefore artist & album) is from a lyrical pattern and structure perspective. From the repetitiveness measure we observed strong differences and weak similarities in the levels of repetitiveness across artists and albums. This gives strength to the hypothesis that the collection of music is eclectic!
 
 
 &nbsp;
@@ -1218,7 +1219,7 @@ Same goes for "rocket" in **Elton John's Rocket Man**, "(two) minutes (to) midni
 
 There is one small similarity with "time" appearing for **Daft Punk** and also for **Led Zeppelin**, in both instances it is rated low in significance, at `< 0.1`, compared to other words for both artists.
 
-With respect to the hypothesis on an eclectic grouping of music, we can clearly see that the top words of significance for each artists, is different and unique when compared across all artists.
+With respect to the hypothesis on an eclectic grouping of music, we can clearly see that the top words of significance for each artist is different and unique when compared across all artists.
 
 This measure is performing as expected and doesn't tell us anything new. However, this can still be useful information to be aware of prior to designing and training any models and exploring topic modelling.
 
@@ -1236,8 +1237,9 @@ At this point, there are some important questions to consider before commencing 
 1. Do we need to perform more data preparation?
 2. Stemming: do we need to remove suffixes from words and reduce down to the common word origin? Is it appropriate?
 3. Lemmatization: do we need to remove inflectional endings of words, and return the base or dictionary form of a word (which is known as the lemma)? 
-4. Advanced concept in sentiment analysis: Is it appropriate to simply replace some certain words with more frequently used synonyms (semantically similar peers) and/or hypernyms (common parents)? This would be used to address lexicon word matching challenges, between the words in the text versus the lexicon used.
-5. Do we need to construct our own lexicon for the sentiment analysis, or will off-the-shelf packaged lexicons be appropriate to use?
+4. How will we approach negation in sentence constructs? "I am not happy and I don't like it", can change it's sentiment and meaning very quickly when we remove key words like "not" and "don't".
+5. Advanced concept in sentiment analysis: Is it appropriate to simply replace some certain words with more frequently used synonyms (semantically similar peers) and/or hypernyms (common parents)? This would be used to address lexicon word matching challenges, between the words in the text versus the lexicon used.
+6. Do we need to construct our own lexicon for the sentiment analysis, or will off-the-shelf packaged lexicons be appropriate to use?
 
 
 &nbsp;
@@ -1292,11 +1294,11 @@ SongSentiment_TidyText_NRC %>%
 ```
 &nbsp;
 
-This is a very dense visualisation, difficult to distinguish any clear patterns.
+This is a very dense visualisation, difficult to distinguish any clear patterns. However it is helpful to observe what words are being triaged into which emotional sentiment grouping.
 
-Let's summarise this down to word counts by emotional sentiment for each artis and then consider this question:
+Let's summarise this down to word counts by emotional sentiment for each artist and then consider this question:
 
-How do these album's make us feel when we listen to them?
+* How do these album's make us **feel** when we listen to them?
 
 &nbsp;
 
@@ -1343,57 +1345,154 @@ From an emotional sentiment perspective this collection of artists and albums ar
 
 Earlier in this analysis we explored single word (or unigram) frequency counts. This section is dedicated to exploring what precedes and follows the most common words we have identified in our collection of songs.
 
-We have the option at this point to remove stop words and undesirable words before calculating the bi-grams and tri-grams. For this piece, only the undesirable words have been removed. It would be interesting to observe the "direction" of the song lyrics, are songs written as one person toward another, a group of people, us versus them, collective "we", directive "you". Let's take a look!
+There are a few ways we can approach ngram analysis, two options are described below:
+
+  1. Using the `tidytext` package and `unnest_tokens()` function to perform a simple and quick "blind" ngram analysis. For bi-gram and tri-gram analysis, this will recount ngram parts and potentially skew the results.
+  2. Using the `tm` and `RWeka` packages to perform a more robust, intelligent ngram analysis. This is a more complex approach versus option 1. It uses a `VCorpus` and a `DocumentTermMatrix`. The `ID` attribute will need to be retained to re-identify the grouping variables, i.e: which ngram belongs to which song, album and artist so we can compare the results.
+  
+  
+I will select `Option 2` for the ngram analysis, I'd like to inspect with greater resolution the subject matter the ngrams will reveal.  
 
 &nbsp;
 
 ```{r "Exploration_BiGrams", echo=FALSE, eval=TRUE, fig.width=10, fig.height=7}
-#REF: https://www.datacamp.com/community/tutorials/sentiment-analysis-R#prepwork
+# TM / QUANTEDA > TIDYTEXT INTELLIGENT NGRAM APPROACH
+library(tm)
+library(quanteda)
+library(tidytext)
 
- BiGrams <- lineToken %>%
-  unnest_tokens(ngram, line, token = "ngrams", n = 2) %>%  #Break the lyrics into individual words
-  #anti_join(stop_words) %>% #removing stop words
-  #filter(!ngram %in% undesirable_words) %>%
-  group_by(CATMusicArtist,CATMusicAlbum, CATTrackName) %>%
-  dplyr::count(ngram, sort = TRUE) %>%
+#Setup the dataset for ngram analysis. We don't want to keep the song title in the lyric sheet.
+#REF for text cleanup:http://rstudio-pubs-static.s3.amazonaws.com/256588_57b585da6c054349825cba46685d8464.html
+# Stopword definitions
+custom_stop_words <- c("chorus", "verse", "lyrics", tm::stopwords("en"))
+
+
+Ngrams_Dset_00 <- wrk.01_DataPrep_LyricsWithSpotify %>%
+  group_by(CATTrackName) %>%
+  filter(style_name == "body") %>%
+  mutate(TXTAllTrackLyrics = paste0(text, sep = ".", collapse = " ")) %>%
+  mutate(NUMMaxLyricLines = max(as.numeric(NUMTrackLyricLineNumber))) %>%
+  mutate(TXTAllTrackLyrics = tolower(TXTAllTrackLyrics)) %>% #make all text lower case
+  mutate(TXTAllTrackLyrics = removePunctuation(TXTAllTrackLyrics)) %>% #Remove all punctuation marks
+  #mutate(TXTAllTrackLyrics = removeNumbers(TXTAllTrackLyrics)) %>% #Remove numbers
+  mutate(TXTAllTrackLyrics = stripWhitespace(TXTAllTrackLyrics)) %>% #Remove excess whitespace
+  mutate(TXTAllTrackLyrics = qdap::bracketX(TXTAllTrackLyrics)) %>% #remove all text within brackets (e.g. “It’s (so) cool” becomes “It’s cool”)
+  mutate(TXTAllTrackLyrics = qdap::replace_number(TXTAllTrackLyrics)) %>%  #Replace numbers with their word equivalents (e.g. “2” becomes “two”)
+  mutate(TXTAllTrackLyrics = qdap::replace_abbreviation(TXTAllTrackLyrics)) %>% #Replace abbreviations with their full text equivalents (e.g. “Sr” becomes “Senior”)
+  mutate(TXTAllTrackLyrics = qdap::replace_contraction(TXTAllTrackLyrics)) %>% #Convert contractions back to their base words (e.g. “shouldn’t” becomes “should not”)
+  mutate(TXTAllTrackLyrics = qdap::replace_symbol(TXTAllTrackLyrics)) %>% #Replace common symbols with their word equivalents (e.g. “$” becomes “dollar”)
+  mutate(TXTAllTrackLyrics = tm::removeWords(TXTAllTrackLyrics, custom_stop_words))  #Remove stop words
+ # see reference and add in stemming if appropriate
+
+
+#Filter out instrumental songs & keep only variables we need.
+Ngrams_Dset_01 <- Ngrams_Dset_00 %>%
+  filter(str_detect(TXTAllTrackLyrics, "Instrumental") == FALSE ) %>%
+  filter(row_number() <= 1) %>% # Select the first record for each song. This contains all lyrics for the song.
+  ungroup() %>%
+  # setup our primary key, record id counter
+  mutate(lineCount = row_number()) %>% 
+  select(lineCount, TXTAllTrackLyrics, CATMusicArtist, CATMusicAlbum, CATTrackName ) %>%
+  rename(doc_id = lineCount) %>%
+  rename(text = TXTAllTrackLyrics) %>%
+  mutate() #for later remerging with DTM results
+
+Ngram_DTM_Merge <- Ngrams_Dset_01 %>%
+  mutate(ID = doc_id) %>%
+  select(ID, CATMusicArtist, CATMusicAlbum, CATTrackName)
+
+#Create the tm VCorpus so RWeka ngram will work correctly
+TM_Corpus <- VCorpus(DataframeSource(Ngrams_Dset_01))
+
+# Manually keep ID information for Corpus from https://stackoverflow.com/a/14852502/1036500
+for (i in 1:length(TM_Corpus)) {
+  attr(TM_Corpus[[i]], "ID") <- Ngrams_Dset_01$doc_id[i]
+}
+
+#Ngram tokeniser fucntion setup ======
+library(RWeka)
+BigramTokenizer <- function(x) {RWeka::NGramTokenizer(x, RWeka::Weka_control(min = 2, max = 2))}
+TrigramTokenizer <- function(x) {RWeka::NGramTokenizer(x, RWeka::Weka_control(min = 3, max = 3))}
+
+#Clean up the corpus [USING THE TM AND QDAP text clean functions in dataframe setup. TM_MAP is removing doc_id attributes]
+#rmvNonEngGsub <- function(x) { gsub(pattern="[^[:alpha:]]", " ", x) }  # remove letters that are not A-Z or num
+#TM_Corpus <- tm_map(TM_Corpus, rmvNonEngGsub)
+#TM_map functions are removing the doc_id attributes
+#MyCorpus <- tm_map(TM_Corpus, content_transformer(tolower)) 
+#TM_Corpus <- tm_map(TM_Corpus, removeNumbers) 
+#TM_Corpus <- tm_map(TM_Corpus, removePunctuation) 
+#TM_Corpus <- tm_map(TM_Corpus, removeWords, stopwords('english')) 
+#TM_Corpus <- tm_map(TM_Corpus, removeWords, stopwords(source = "smart")) 
+#TM_Corpus <- tm_map(TM_Corpus, stemDocument, language = "english") 
+#TM_Corpus <- tm_map(TM_Corpus, PlainTextDocument) 
+
+#BIGRAM DOCUMENT TERM MATRIX
+dtm_bigram <- DocumentTermMatrix(TM_Corpus, control = list(tokenize = BigramTokenizer, wordLengths = c(3,30)))
+#inspect(dtm_bigram)
+
+#TRIGRAM DOCUMENT TERM MATRIX
+dtm_trigram <- DocumentTermMatrix(TM_Corpus, control = list(tokenize = TrigramTokenizer, wordLengths = c(3,30)))
+#inspect(dtm_trigram)
+
+#Merge the DTM back onto the original dataframe by doc_id
+dtm_bigram_df <- data.frame(as.matrix(dtm_bigram))
+dtm_trigram_df <- data.frame(as.matrix(dtm_trigram))
+
+# merge by row.names from https://stackoverflow.com/a/7739757/1036500
+dtm_bigram_df_merged <- base::merge(Ngram_DTM_Merge, dtm_bigram_df, by.x = "ID", by.y = "row.names" )
+#head(dtm_bigram_df_merged)
+
+dtm_trigram_df_merged <- base::merge(Ngram_DTM_Merge, dtm_trigram_df, by.x = "ID", by.y = "row.names" )
+#head(dtm_trigram_df_merged)
+
+
+#Gather the dataset (transpose wide to long)
+dtm_bigram_df_final <- dtm_bigram_df_merged  %>%
+  gather(BiGram, Value, -ID, -CATMusicArtist, -CATMusicAlbum, -CATTrackName) %>%
+  group_by(CATMusicArtist) %>%
+  arrange(desc(Value)) %>%
   ungroup()
 
-  TriGrams <- lineToken %>%
-  unnest_tokens(ngram, line, token = "ngrams", n = 3) %>%  #Break the lyrics into individual words
-  #anti_join(stop_words) %>% #removing stop words
-  filter(!ngram %in% undesirable_words) %>%
-  group_by(CATMusicArtist,CATMusicAlbum, CATTrackName) %>%
-  count(ngram, sort = TRUE) 
+#str(dtm_bigram_df_final)
+
+dtm_trigram_df_final <- dtm_trigram_df_merged  %>%
+  gather(TriGram, Value, -ID, -CATMusicArtist, -CATMusicAlbum, -CATTrackName) %>%
+  group_by(CATMusicArtist) %>%
+  arrange(desc(Value)) %>%
+  ungroup()
+
+#str(dtm_trigram_df_final)
 
 library(ggplot2)
-b.G <- BiGrams %>%
+Bigrams <- dtm_bigram_df_final %>%
   group_by(CATMusicArtist) %>%
-  mutate(ngram = reorder(ngram, n, sum)) %>%
   slice(1:10) %>%
   ungroup() %>%
   #to reorder the x axis by sum of n, add in reorder() to aes(x= ..)
-  ggplot(aes(x = reorder(ngram, n, sum), n, fill = CATMusicArtist)) +
+  ggplot(aes(x = reorder(BiGram, Value, sum), Value, fill = CATMusicArtist)) +
   geom_col(show.legend = FALSE) +
   facet_wrap(~ CATMusicArtist, scales = "free") +
-  ylab("Most Frequent Bi-Grams") +
+  ylab("Most Frequent bi-Grams") +
   xlab('Bi-grams') +
   ggtitle("Bi-Grams for each Artist & Album") +
   coord_flip() 
-  
 
-b.G 
+Bigrams
+
+
 ```
 
 &nbsp;
 
 ```{r "Exploration_TriGrams", echo=FALSE, eval=TRUE, fig.width=10, fig.height=7}
-t.G <- TriGrams %>%
+
+library(ggplot2)
+Trigrams <- dtm_trigram_df_final %>%
   group_by(CATMusicArtist) %>%
-  mutate(ngram = reorder(ngram, n, sum)) %>%
   slice(1:10) %>%
   ungroup() %>%
   #to reorder the x axis by sum of n, add in reorder() to aes(x= ..)
-  ggplot(aes(reorder(ngram, n, sum), n, fill = CATMusicArtist)) +
+  ggplot(aes(x = reorder(TriGram, Value, sum), Value, fill = CATMusicArtist)) +
   geom_col(show.legend = FALSE) +
   facet_wrap(~ CATMusicArtist, scales = "free") +
   ylab("Most Frequent Tri-Grams") +
@@ -1401,20 +1500,28 @@ t.G <- TriGrams %>%
   ggtitle("Tri-Grams for each Artist & Album") +
   coord_flip() 
 
-t.G 
-
+Trigrams
 
 ```
 &nbsp;
 
-The lasting "sentiments" from observing these bi-grams and tri-grams:
+The lasting subject matter and "sentiments" from observing these bi-grams and tri-grams:
 
-* Daft Punk - The lyrical repetitiveness is very obvious, strongest of all the artists. Ngram structure points toward "being in the moment" and self-enjoyment.
-* Elton John - Less ngram frequency, with a common thread of thankfulness ("thank") and chill ("mellow")
-* Iron Maiden - Strong themes of returning to a communal "village" and anticipating "midnight"
-* Killswitch Engage - Written from the experiences of the first person ("i am", "me in") and observing the passing of "time"
-* Led Zeppelin - The writer's observations of relationships with people ("you didn't", "hey mama", "love")
-* U2 - The writer's observations of life journeys, observations with people ("haven't found", "bullet the blue", "you give") and foreign places ("streets")
+* **Daft Punk** - The highest ngram frequency count of all the artists. The lyrical repetitiveness from the song "One More Time" is very obvious, strongest of all the artists. The bi-gram and tri-gram structures point toward "being in the moment" and self-enjoyment. There is a strong subject theme pointing toward the "music" and "dancing" along with it.
+* **Elton John** - Lowest ngram frequency of all artists, this could be linked back to the observations in the songsim matrices, Elton John's songs don't have much lyrical repetition in them. The bi-grams and tri-grams here weakly highlight a common subject thread of thankfulness ("thank"), chill ("mellow") and a desirable "pretty" girl.
+* **Iron Maiden** - Strong subject themes of returning to a communal "village" and anticipating "midnight", there's a sense of survival urgency with "run" and escapism in "fly".
+* **Killswitch Engage** - Strong subject themes of observing the passing and impacts of "time", and emotional pain resulting in "tears".
+* **Led Zeppelin** - A low degree of lyrical repetitiveness circulating around "love", "light" and asking "mama" what's up.
+* **U2** - The song writer's observations of life journeys, observations with people ("haven't found", "bullet [the] blue", "give away") and foreign places ("streets"). Some unique Bono-esque chorus constructions emerge with "la di day".
+
+Just like the NRC emotional sentiment, the bi-grams and tri-grams also begin to paint a picture that each artist has its own "ngram frequency profile". On face value it could be argued that **Daft Punk** and **Killswitch Engage** share the same ngram of `time`, and therefore this makes these artists similar. However we now know from the NRC emotional sentiment that these artists are on very different ends of the emotional profile spectrum, **Daft Punk** is full of joy, while **Killswitch Engage** contains a great deal of sadness.
+
+In terms of subject matter similarity, it is curious to note:
+
+* **Elton John** has written lyrics about himself talking to a female person named `Amy`, and **Led Zeppelin** has done something very similar by questioning a perceived anonymous female person named `mama`.
+* **Iron Maiden** has lyrics which describe a location known as the `village`, while **U2** have lyrics which describe a location which has `streets`.
+
+How does all this new information rate against the hypothesis that this collection of music is eclectic? This section has begun to uncover the hidden subject matter and potential (and subjective) meaning of the albums and songs in the collection. While the ngram frequency counts are varied across the artists, the similarities in subject matter via similar analogies, give rise to the counter argument.
 
 &nbsp;
 
@@ -1425,24 +1532,25 @@ From our Bi-Gram constructs we can create a network graph using the `ggraph` and
 
 From our earlier inspection of unigram word frequencies, the following high-frequency "centering words" have been selected:
 
-`"hey","feel","gonna","people","yeah","love","light","time", "life"`
+`"hey", "feel", "gonna", "people", "yeah", "love", "light", "time", "life"`
 
 Our dataset will be grouped up, to represent all songs, for all artists and albums.
 
 
 &nbsp;
 
-```{r "Exploration_BiGrams_Network", echo=FALSE, eval=TRUE, fig.width=7, fig.height=7, fig.align='center'}
+```{r "Exploration_BiGrams_Network", echo=FALSE, eval=TRUE, fig.width=8, fig.height=10, fig.align='center'}
 centre_words <- c("hey","feel","gonna","people","yeah","love","light","time", "life")
 
-bigrams_separated <- BiGrams %>%
-  separate(ngram, c("word1", "word2"), sep = " ")
+bigrams_separated_TM <- dtm_bigram_df_final %>%
+  mutate(BiGram = gsub(".", " ", BiGram, fixed = TRUE)) %>%
+  separate(BiGram, c("word1", "word2"), sep = " ")
 
 library(ggraph)
 library(igraph)
 library(tidytext)
-centre_bigrams <- bigrams_separated %>%
-  select(word1, word2, n) %>%
+centre_bigrams <- bigrams_separated_TM %>%
+  select(word1, word2, Value) %>%
   filter(word1 %in% centre_words) %>%
   group_by(word1) %>%
   slice(seq_len(20)) %>%
@@ -1458,15 +1566,17 @@ a <- grid::arrow(type = "closed", length = unit(.10, "inches"))
 ggraph(bigram_graph, layout = "fr") +
   geom_edge_link() +
   geom_node_point(color = "lightblue", size = 5) +
-  geom_node_text(aes(label = name), vjust = 1, hjust = 1) +
+  geom_node_text(aes(label = name), vjust = 1, hjust = 1, repel = TRUE) +
   ggtitle("Bi-Gram Network for All Songs") +
   theme_void()
 ```
 
 
-This is just a simple network graph to demonstrate the various methods we can use to visualise our song lyric data.
+This is just a simple network graph to demonstrate the various methods we can use to visualise our song lyric data. It is heavy on the cognitive load to interpret and it is showing all ngrams without illustrating their artist/album/song origins. 
 
-For any songwriter's out there, perhaps this could be useful in identifying lyric constructs?
+This does however show us some lyric construction pathways and how subjects within a song can be formed. For testing the hypothesis on an eclectic grouping of music, this shows us an alternative perspective that across all songs some lyrical pathways are shared and inspires the idea that some pathways are more common than others. This visualisation does not show us however, the strength and level of commonality of these shared pathways, it only shows us that similarities exist.
+
+Another practical application for this visualisation: For any songwriter's out there, perhaps this could be useful in brainstorming or identifying ideas for lyric constructs?
 
 
 &nbsp;
@@ -1519,31 +1629,38 @@ song_cors %>%
 
 &nbsp;
 
-Well this is curious! We created a pairwise correlation plot using the `igraph` package and using the `graph_from_data_frame` function with our input dataset. We filtered our dataset to show only correlations stronger than `0.4`
+Well this is a revelation! We created a pairwise correlation plot using the `igraph` package and using the `graph_from_data_frame` function with our input dataset. We filtered our dataset to show only correlations stronger than `0.4`.
 
-From this it appears only **Elton John's Mona Lisa and Mad Hatters** and **Led Zeppelin's Down by the Seaside** have a connection with a correlation greater than 0.4. Does this mean they are similar songs?
+From this it appears that only **Elton John's Mona Lisa and Mad Hatters** and **Led Zeppelin's Down by the Seaside** have a connection with a correlation `greater than 0.4`. Does this mean they are similar songs? A correlation of 0.4 isn't very strong, more evidence would be needed to support this idea. When observing the word counts and repetitiveness these two songs are distinctly different. Checking the songsim matrix plots also confirms this, however one could say "Mona Lisas and Mad Hatters" has a "weaker" more "sparse" songsim lyrical pattern plot to "Down by the Seaside". Maybe there is some similarity here but it is very weak.
 
-Interesting that no other songs had a high enough correlation in the pairwise calculation to be considered as _"significant"_.
+Interesting that no other songs had a high enough correlation in the pairwise calculation to be considered as _"significant"_. With regard to the hypothesis that this collection of music is eclectic, this method is highlighting far more differences than similarities.
 
 &nbsp;
 
 ### **e.  Album similarity**
 
-Using the `QDAP` package we have access to a function called `trans_venn()`. Since we just observed pairwise correlations between songs, let's take a look at similarity between albums, visualised as a venn diagram.
+Using the `QDAP` package we have access to a function called `trans_venn()`. Since we just observed pairwise correlations between songs, let's take a look at similarity between **albums**, visualised as a venn diagram.
 
 ```{r "Exploration_AlbumSimilarity", echo=FALSE, eval=TRUE, fig.width=10, fig.height=5, fig.align='center'}
 VennDiagram <- with(wrk.02_TextAnalysis_02 , qdap::trans_venn(text.var = text, grouping.var = CATMusicArtist, title.name ="Album Similarity by Song Lyrics", legend.location = "topright"))
 
 ```
-It appears **U2's The Joshua Tree** is a versatile linking centroid in this venn diagram. Can the other albums realistically be "linked" together via The Joshua Tree?
+This visualisation could be interpreted as more a novelty than providing any solid metric to assess the hypothesis of an eclectic music collection. In absence of metrics, this visualisation does illustrate that similarity overlap between artists do exist, even if that overlap is fairly weak. 
+
+In deriving any meaning from this venn diagram, it appears:
+
+* **U2's The Joshua Tree** is a versatile linking centroid in this venn diagram. This evokes a more philosophical question, can the other albums realistically be "linked" together via **The Joshua Tree**? 
+* **Iron Maiden** and **Killswitch Engage** share the most visual overlap, closely followed by **U2** and **Elton John** then **U2** and **Led Zeppelin**
+* **Daft Punk** is very weakly grazing the border of **U2** and **Killswitch Engage**. Does this mean they are most dis-similar of all the artists?
+
 
 &nbsp;
 
 ### **f. Song dissimilarity (agreement between lyrics)**
 
-Just like the album similarity we calculated in the previous section, we can do something similar for songs. Still using the `QDAP` package, we can use the `Dissimilarity()` function. We can perform dissimilarity statistics, using the distance function to calculate dissimilarity statistics by grouping variables.
+Just like the album similarity we calculated in the previous section, we can do something similar for **songs**. Still using the `QDAP` package, we can use the `Dissimilarity()` function. We can perform dissimilarity statistics, using the distance function to calculate dissimilarity statistics by grouping variables.
 
-The `Dissimilarity()` function will return a matrix of dissimilarity values, which is the agreement between text, or song. We will plot this matrix as a dendogram and identify some potential clusters.
+The `Dissimilarity()` function will return a matrix of dissimilarity values, which is the agreement between text, or songs. We will plot this matrix as a dendogram and identify some potential clusters.
 
 &nbsp;
 
@@ -1560,7 +1677,11 @@ rect.hclust(fit, k = 14, border = c("red", "blue", "green", "purple", "orange", 
 
 This dendogram offers us a very alternative view of how similar and different the individual songs in the collection are. We configured the dendogram to identify 14 clusters and illustrate the borders of these clusters with the coloured rectangles.
 
-Curious how there is one large cluster in the middle, illustrated with the green rectangle.
+Curious how there is one large cluster in the middle, illustrated with the green rectangle. It is difficult to discern why some songs are in certain clusters:
+
+* The most repetitive, and lowest lexically diverse songs Daft Punk's "One More Time" and "Harder, Better, Faster, Stronger" are in the same cluster as one of the least repetitive, more lexically diverse songs, Led Zeppelin's "Kashmir", and a wide variety of songs from all other artists.
+
+This visualisation paints a picture that there are both similarities and differences with song lyrics at the individual song level. No one, single artist dominates any of the dendogram's defined clusters, and so far we know from previous metrics all of the songs differ with word counts, vocabulary, lyric pattern structure and repetitiveness.
   
 &nbsp;
     
@@ -1680,6 +1801,7 @@ td_BetaMatrix <- tidy(STM_topic_model)
 
 td_BetaMatrix %>%
   group_by(topic) %>%
+  filter(beta > 0) %>%
   top_n(10, beta) %>%
   ungroup() %>%
   mutate(topic = paste0("Topic ", topic),
@@ -1718,16 +1840,21 @@ ggplot(td_GammaMatrix, aes(gamma, fill = as.factor(topic))) +
 ```
 &nbsp;
 
-From these results it seems each song is strongly associated with a single topic. This is an uncommon occurrence as topic modeling does not always work out this way. Remembering that we built a model with only a small number of "documents" and a small amount of "words". This was still a good exercise in working with topic modelling and interpreting beta and gamma results.
+From these results it seems each song is strongly associated with a single topic. This is an uncommon occurrence as topic modeling does not always work out this way. Remembering that the model was built with only a small number of "documents" (6 artists & albums, 59 songs) and a small total amount of "words" to work with. This was still a good exercise in working with topic modelling and interpreting beta and gamma results.
 
 Observing the results from the beta matrix, the topics, and music artist influences:
 
-* Topic 1 - hybrid of Daft Punk & Elton John
-* Topic 2 - strongly suggests Iron Maiden
-* Topic 3 - faintly describes a mix of Iron Maiden and Killswitch Engage
-* Topic 4 - appears to be mostly Led Zeppelin
-* Topic 5 - a mix of Iron Maiden, Elton John
-* Topic 6 - distinctively U2
+* Topic 1 - Dominantly **Daft Punk** themed, with key repetition words "harder","faster", "stronger".
+* Topic 2 - Strongly suggests **Iron Maiden** themed, with all words, including "rime" and "mariner" distinctly belonging with Iron Maiden.
+* Topic 3 - Weakly describes **Killswitch Engage** with "numbered", "temple" and "vide". We also know from other metrics that Killswitch Engage has low word and vocabulary count.
+* Topic 4 - Is mostly **Led Zeppelin** with words like "dying" and "kashmir", with a hint of **Killswitch Engage** and appearance of "time" - we know about this word's placement from the ngram analysis and the emotional profile connotation of Killswitch Engage's album. It's not surprising to see "time" (with a sadness connotation) mingled with "dying", "sick" and "night" within the same topic.
+* Topic 5 - Mostly **Elton John**, I suspect the appearance of "time" here is originating from the song "Rocket Man" and its chorus structure.
+* Topic 6 - Distinctively **U2**, who else would sing about "red hill mining town"?
+
+
+Acknowledging the technical challenge of working with a small amount of data and with the results as they are, the model topics reveal very minimal overlap and similarity between artists. The artists and album/song content group fairly cleanly into their own topics. This gives more confidence to the hypothesis that the collection of music is eclectic.
+
+
 
 &nbsp;
 
@@ -1738,30 +1865,40 @@ Observing the results from the beta matrix, the topics, and music artist influen
 
 ### **a. Findings**
 
-Returning to our guiding questions:
+**Returning to our guiding questions:**
 
-**Can we make meaningful sense of the data?**
-Yes! Across the selected 6 music albums and 59 individual songs identified:
+1.	**The hypothesis**. Can we prove this collection of music is truly an **eclectic** playlist?
+A variety of different text mining, NLP and machine learning techniques were utilised in this analysis and the results from these were objectively assessed. Here’s the short version of results:
 
-* Each song is uniquely different to the next, as we saw in the SongSim matrices, pair-wise correlations and song similarity dendogram.
-* Each album, and collection of songs within the album do suggest common overarching themes, as we saw in NRC emotional sentiments.
-* Some albums share similar themes, as we saw in the STM model and in the venn diagram.
-* Each artist (and album) has a particular preference in lyrical structure and word choice, as we saw in the SongSim matrices and Ngrams.
-
-Is it safe to say that this collection of songs and albums is an example of an eclectic collection? Perhaps. Although, reality suggests that humans can find a way of proving and dis-proving similarity using a variety of configurable techniques.
-
-Having never listened to Iron Maiden's Powerslave album, this analysis has provided me with a much clearer understanding of what stories, derived meanings, and sentiments this album contains. That's pretty cool!
-
-Here's how this analysis has helped me make sense of this collection of music data:
-
-* **Daft Punk's Discovery** . There is lyrical evidence this album was engineered for sound and audio experience rather than wordy storytelling. There is low lexical diversity. High lyrical repetition. Emotional sentiment pointing well into the positive. There's a high instrumental song count on the album compilation. The songs which do have lyrics tend to centre around one or two key words and are examples of songs which get stuck in our heads.
-* **Killswitch Engage's Alive or Just Breathing**. This album shows signs of being engineered for a different kind of sound experience to that of Daft Punk. It has lower lexical diversity count (like Daft Punk) but has an emotional sentiment well into the negative. Keyword emphasis is different, indicating the vocal “growling” of lyrics and so careful selection of words to achieve this purpose could be what we are observing in a lower vocabulary range.
-* **Elton John's Honky Chateu**.
-* **Led Zeppelin's Physical Graffiti**.
-* **U2's The Joshua Tree**.
-* **Iron Maiden's Powerslave**.
+* 1.	Album word length – **the collection is eclectic**. Each artist and album has differing word durations and number of songs per album available for analysis
+* 2.	Word Clouds & Counts – **the collection is eclectic**. Each artist demonstrates different word selection
+* 3.	Lexical Diversity – the collection is similar between four of the six artists. Vocabulary size is demonstrated.
+* 4.	SongSim matrix plots – **the collection is eclectic**. Each song has a different lyrical pattern “signature”, albums of songs tend to share similar base patterns and “flow”
+* 5.	SongSim repetition scores – the collection is similar between four of the six artists. The average repetition of the artists & albums is demonstrated.
+* 6.	TF-IDF scores – **the collection is eclectic**; the words of significance differ between artists.
+* 7.	NRC Emotional Sentiment – **the collection is eclectic**. Each artist has an “emotional profile” which is distinct and different.
+* 8.	Bi-grams and Tri-grams – the collection is similar. Similarities are observed via perceived subject matter and subject analogies.
+* 9.	Bi-gram network – the collection is similar. Lyrical construct pathways can potentially be shared, across artists, albums and songs.
+* 10.	Pair-wise correlation – **the collection is eclectic**. Majority of songs did not yield a high enough correlation to be labelled as significant.
+* 11.	Venn Diagram of album similarity – **the collection is eclectic**. Notable mention to U2’s the Joshua Tree for being a potential similarity linkage to all other artists in the collection.
+* 12.	Dendogram of song similarity – **the collection is eclectic**. No strong themes emerging from the defined clusters.
+* 13.	Structured Topic Model (STM) – **the collection is eclectic**, 6 topics defined and neatly defined artist & album groupings under each of the 6 topics.
 
 
+  **Summarising these results**, it will be majority vote. **Nine of the thirteen (9/13) of the methods used in this analysis pointed toward this selected collection of music is eclectic**. Of the four methods used which pointed toward similarity, two were related to using calculated “averages” metrics and two were generating an awareness that the perceived subject matter could be synonymously linked between artists, i.e. the listener could derive lyrical similarities and subject analogies between artists.
+	
+	
+2.	Can we identify **what makes a song unique, special similar and different** to another song?
+    The SongSim matrix plots have been particularly useful in answering this question. The plots not only show the lyrical pattern “signature” for each song but also make us aware of the basic lyrical flow and structure of a song.
+
+
+3.	Do the albums actually **tell a story** or have a **meaning**?
+    We could further explore this question in a subsequent analysis, as telling a story involves the concept of establishing a timeline. Observing how ngrams and emotional sentiment change as the album’s songs are listened/experienced in the order as they are listed i.e track 1,2,3… and even at the song level, as the song progresses from beginning to end, this could yield some interesting results on story telling.
+    With regard to identifying a meaning with each of the albums, this is subjective to the listener (or reader of the lyrics in this case), we could begin to extract a basic meaning when observing the ngrams and the overall “emotional profile” NRC emotional sentiments.
+
+
+4.	Is it possible to obtain an **understanding** of a music album through **only observing its lyrics**, having never actually listened to it?”
+    Having never listened to Iron Maiden’s Powerslave album, this analysis has provided me with a much clearer understanding of what subjects, derived meanings, and sentiments this album contains. That’s pretty cool! The album song lyrics read like it’s a very intense album, and in particular “Rime of the Ancient Mariner” looks like a very epic song! I’m looking forward to listening to the album and validating this thought.
 
 &nbsp;
 
@@ -1780,11 +1917,13 @@ Two key lessons I picked up on preparing this analysis:
 
 There were a few elements in this analysis we could unpack further, such as:
 
-* Song sentiment progression from first to last verse (by "sentence").
+* Album and Song sentiment progression from first to last listed track and song verse (by "sentence"), respectively.
 * What would happen if we applied word stemming, lemmatization, synonyms and hypernyms?
 * Including all albums released by the artists selected for this analysis. How much different would adding more "documents" make?
+* Impacts of "negation" words, for example: "I'm not happy and I don't like it" will have different sentiment and meaning depending on which words are eliminated. Same goes for lyrics.
+* Could the songsim matrix plots be used to detect lyrical plagiarism between artists?
 
-Given this analysis is all about music, we only covered one aspect in this analysis, the lyrical constructs. To make this a more holistic analysis, we will consider the audio components of music for a subsequent analysis.
+Given this analysis is all about music, we only covered one aspect in this analysis, the lyrical constructs from a text analysis approach. To make this a more holistic analysis, we will consider the audio components of music for a subsequent analysis.
 
 &nbsp;
 
@@ -1793,7 +1932,8 @@ I'd love to receive your thoughts, queries and feedback on this analysis. Please
 
 &nbsp;
 
-Thanks for connecting and reading!
+
+Thanks for connecting!
 
 Bree.
 
@@ -1806,27 +1946,27 @@ Many hours have been spent researching approaches for designing and writing this
 
 **Inspirations for this piece**
 
-* TV series “It might get loud” with The Edge (U2), Jimmy Page (Led Zeppelin), Jack White (The White Stripes)
-* Game: Audiosurf (visualising sound, beat detection algorithms and digital signal processing)
+* [1] TV series “It might get loud” with The Edge (U2), Jimmy Page (Led Zeppelin), Jack White (The White Stripes)
+* [2] Game: Audiosurf (visualising sound, beat detection algorithms and digital signal processing)
 
 **Text mining, NLP and Machine Learning with Music Lyrics**
 
-  [Prince analysis - NLP](https://www.datacamp.com/community/tutorials/R-nlp-machine-learning)
-
-  [Prince analysis - Sentments](https://www.datacamp.com/community/tutorials/sentiment-analysis-R)
-
-  [The Ramones](http://r-blog.salvaggio.net/?p=521)
-
-  [Rick and Morty](http://tamaszilagyi.com/blog/a-tidy-text-analysis-of-rick-and-morty/)
-
-  [50 Years of Pop Music Lyrics](https://github.com/walkerkq/musiclyrics)
-
-  [Radiohead & Using the Spotify API](http://www.rcharlie.com/post/fitter-happier/)
-
-  [Alternative sentiment analysis: Using the “gloom” index to find depressing songs](http://blog.revolutionanalytics.com/2017/02/finding-radioheads-most-depressing-song-with-r.html)
-
-  [Alternative visualisations: Visualising songs as matrix structures and find repetitions](http://giorasimchoni.com/2017/10/16/2017-10-16-repeat-yourself-the-songsim-package/)
-
-  [Topic Modeling of Sherlock Holmes Stories](https://juliasilge.com/blog/sherlock-holmes-stm/)
-
-  [Topic modeling using STM](http://thomaselliott.me/pdfs/earl/topic_modeling.html)
+   [3]  [Prince analysis - NLP](https://www.datacamp.com/community/tutorials/R-nlp-machine-learning)
+  
+   [4]  [Prince analysis - Sentments](https://www.datacamp.com/community/tutorials/sentiment-analysis-R)
+  
+   [5]  [The Ramones](http://r-blog.salvaggio.net/?p=521)
+  
+   [6]  [Rick and Morty](http://tamaszilagyi.com/blog/a-tidy-text-analysis-of-rick-and-morty/)
+  
+   [7]  [50 Years of Pop Music Lyrics](https://github.com/walkerkq/musiclyrics)
+  
+   [8]  [Radiohead & Using the Spotify API](http://www.rcharlie.com/post/fitter-happier/)
+  
+   [9]  [Alternative sentiment analysis: Using the “gloom” index to find depressing songs](http://blog.revolutionanalytics.com/2017/02/finding-radioheads-most-depressing-song-with-r.html)
+  
+   [10]   [Alternative visualisations: Visualising songs as matrix structures and find repetitions](http://giorasimchoni.com/2017/10/16/2017-10-16-repeat-yourself-the-songsim-package/)
+  
+   [11]   [Topic Modeling of Sherlock Holmes Stories](https://juliasilge.com/blog/sherlock-holmes-stm/)
+  
+   [12]   [Topic modeling using STM](http://thomaselliott.me/pdfs/earl/topic_modeling.html)

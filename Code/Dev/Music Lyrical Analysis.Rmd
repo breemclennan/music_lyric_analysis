@@ -15,41 +15,6 @@ output:
 ---
 
 ```{r todo_list, include=FALSE}
-# TODOS for next update:
-# Narrative, watch out for the usage of I and we
-# Ngrams: Bi and Tri grams. "time has come" 10, "has come" 6, in a better ngram analysis, parts are not recounted
-#         recounting the parts skews this type of analysis
-#         tidytext ngrams have this shortcoming, tidytext performs blind bi-grams. We can look to use the TM package instead.
-
-# WORKFLOW code from BK ======
-# Corpus -> TidyText 
-#MyCorpus <- Corpus(DataframeSource(wrk.validclaims)) 
-#MyCorpusQ <- quanteda::corpus(MyCorpus) 
-#tidy.data <- tidy(MyCorpusQ) 
-#Bigram setup ======
-#NgramTokenizer <- function(x) {RWeka::NGramTokenizer(x, RWeka::Weka_control(min = 1, max = 2))} 
-#MyCorpus <- Corpus(DataframeSource(wrk.validclaims)) 
-# Create DTM ========
-#  dtm <<- DocumentTermMatrix(MyCorpus, control = list(tokenize = NgramTokenizer , 
-#    weighting = weightTf, wordLengths = c(3, 60), bounds = list(global = c(5,Inf)))) 
-#
-#
-#
-# Convert some of the long tables from kable to paginated DT tables, if appropriate
-
-# Addressing the so what?
-# From dad: your coloured word count chart. What density of words corresponds to each coloured dot? 
-# 0. its a clinical dissection of lyrics. Why is it we associate with a song, a melody or rhythm? Why does that piece make an impact upon us when other music has no charm? 
-# We can imagine or emphasize with the words, or the melody takes us away from our reality to a place where stress is lessened or removed for awhile. Medical studies have shown that music does have a beneficial effect on us.   As I mentioned earlier: it’s the good vibrations, that matter.
-#There is much to analyse  if you consider rhythm, melody, instruments, the arrangement of music and whether the words match the music, how are #the words arranged, where each instrument comes into the piece and does it suit the melody or distract from it. 
-
-#
-# 1. Having never listened to Iron Maiden's Powerslave, I now have a much clearer understanding of this album's content
-# 2. In consultation with my family, I selected (cherry picked) 6 albums we percieved to be "eclectic" from one another, does this analysis agree with this perception? <<weave in this throughout the analysis, each component accept/rejecting the idea and come to a conclusion at the end.
-# 3. Exploration of copy write legality. in forensic analysis to prove or disprove copy write infringements.
-# 4. How could this analysis be used on concert music,jazz, chamber music or modern music that does not have words?
-
-
 # Fixes: rsconnect required us toset R_LIBS_USER as an environment variable in windows 10 user environment variables, value set to the R package library folder configured for R studio.
 ```
 

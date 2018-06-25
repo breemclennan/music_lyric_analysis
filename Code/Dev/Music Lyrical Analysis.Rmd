@@ -162,7 +162,7 @@ More recently, this thought pattern commentary has been circulating in my head w
   5.  "Is it possible to obtain an understanding of a music album through only observing its lyrics, having never actually listened to it?"
   6.	“Hey Bree, you are a **data scientist** by trade. **Music IS data**, could you do something **useful and insightful** with it to **find some answers**?”
   
-On that last comment, my inner kid sparked up and went “ooh this could be so much fun, we can learn, write, and do an analysis with sound engineering, signal processing, text mining and natural language processing”. My logical mind very quickly realised to cover off all of those topics in a single article wouldn’t be doing any of those single topics any justice. I would need to chunk-down these topics into separate articles. So for this article, the **purpose** is to demonstrate with great love:
+On that last comment, my inner kid sparked up and went _“ooh this could be so much fun, we can learn, write, and do an analysis with sound engineering, signal processing, text mining and natural language processing”_. My logical mind very quickly realised to cover off all of those topics in a single article wouldn’t be doing any of those single topics any justice. I would need to chunk-down these topics into separate articles. So for this article, the **purpose** is to demonstrate with great love:
 
 **A comprehensive music lyrical analysis!** 
 
@@ -211,7 +211,7 @@ This project will be written in R, with the [Github repository link here.](https
   * c.  Word counts by song & album
   * d.  Wordclouds
   * e.  Lexical diversity (vocabulary)
-  * f.  song lyrics self-similarity matrices (SongSim) & repetition
+  * f.  Song lyrics self-similarity matrices (SongSim) & repetition
   * g.  Term Frequency - Inverse Document Frequency (TF-IDF)
     
     &nbsp;
@@ -333,7 +333,7 @@ After much deliberation and consulting with friends and family, I decided to sel
 +---------------+-------------------+---------------+-------------+--------------------------------------+---------------+---------------------------------------------------------+
 | Led           | Physical Graffiti | 1975          | Rock        | 1.	Custard Pie                      | Hard Rock,    | Bree wants to inspect Kashmir further.                 |  
 | Zeppelin      |                   |               |             | 2.	The Rover                        | Heavy Metal   |                                                         |
-|               |                   |               |             | 3.	In my Time of Dying              |               | Bron-Yr-Aur is an instrumental                          |
+|               |                   |               |             | 3.	In my Time of Dying              |               | Bron-Yr-Aur is an instrumental.                         |
 |               |                   |               |             | 4.  Houses of the Holy               |               |                                                         |
 |               |                   |               |             | 5.	Trampled Under Foot              |               |                                                         |
 |               |                   |               |             | 6.	Kashmir                          |               |                                                         |
@@ -551,7 +551,7 @@ glimpse(select(checkSpotify_NotMatchingSource,album_name, track_name ))
 A few things we can observe and acknowledge so far:
 
 *	Some songs will be instrumental. The raw lyric sheets will only contain `“[Instrumental]”` for instrumental songs. We can filter these out of our analysis and re-use these in subsequent analysis. Perhaps for signal or beat detection analysis!
-* Each lyric “line” is meaningful in the flow of a song. Each line can be linked to subsequent lines via rhyming and context. We expect the lyric sheets to loosely resemble poetry and we expect a higher instance of repetition, because music is full of patterns (unless we’re dealing with some kind of random jam session or jazz genres!)
+* Each lyric “line” is meaningful in the flow of a song. Each line can be linked to subsequent lines via rhyming and context. We expect the lyric sheets to loosely resemble poetry and we expect a higher instance of repetition, because music is full of patterns (unless we’re dealing with some kind of random jam session or jazz genres!).
 *	The number of songs will vary per artist and album. Some albums will have more songs than others. We need to be mindful of any analysis utilising word counts or averages.
 * In reality, the lyrics are interwoven with an audio track. This analysis is like staring at words in segregated silence. With the audio track interwoven this adds the dimensions of time series, rhythm, verbal intonation and speech/verbal patterns, and emotional sentiment, all of which lead us to interpret the lyrics differently to how we would analysing lyrics in isolation. Think for a moment, when you receive text based emails or text messages, the emotions, sentiment and context of the communication can be very difficult to convey in text format alone, the same message transmitted as sound can result in a very different reception. 
 
@@ -851,7 +851,7 @@ On initial observation of these word clouds:
 
  * All of these wordclouds are visually different and unique! This view shows us on broad, face value the collection of artists, albums and songs in the dataset are an **eclcectic** collection.
  * There is an observable difference in word choice & vocabulary used between artists. See **Led Zeppelin's** relaxed usage of "mama" and "baby" versus the articulate words from **Iron Maiden** "mariner", "village".
- * Seemingly larger sized/rendering area word cloud with more defined words of Elton John versus a smaller word cloud with less defined words in **Daft Punk**.
+ * Seemingly larger sized/rendering area word cloud with more defined words of **Elton John** versus a smaller word cloud with less defined words in **Daft Punk**.
  * Perceived similar (but not precisely the same), synonymous word usage between **U2** and **Killswitch Engage**: "heart", "eyes". "life" versus "love".
 
 
@@ -1038,7 +1038,7 @@ Song_Repetition_DF <- Song_Repetition_DF %>%
 &nbsp;
 The SongSim matrices also come with some handy parameters:
 
-* `$ songMat` - this is the matrix structure for the SongSim plot
+* `$ songMat` - this is the matrix structure for the SongSim plot.
 * `$ repetitiveness` - this quantifies how repetitive a song is. It is a simple mean of the upper triangle of the matrix. The larger the value, the more repetitive the song.
 
 We can create songsim matrices for our collection of songs and then compare `repetitiveness` scores as a method of assessing lyrical repetition (or lyrical density).
@@ -1091,7 +1091,7 @@ So what do all of these songs look like as SongSim matrices? We have an opportun
 
 &nbsp;
 
-Some notable mentions from the "SongSim Matrix Poster":
+Some notable mentions and observable "base patterns" from the "SongSim Matrix Poster":
 
 * Entire patterned square: **Daft Punk's "Harder, Better, Faster, Stronger"** is a great example of visualised pop music. The chorus is basically the entire song. **Daft Punk's "One more time"** and **"Too long"** also fit this description and pattern. 
 * Small checkerboard-like patterns: Most of **Elton John's** songs only have a small number of words within a repetition, see "Salvation" and "Hercules".
@@ -1479,12 +1479,12 @@ The lasting subject matter and "sentiments" from observing these bi-grams and tr
 * **Led Zeppelin** - A low degree of lyrical repetitiveness circulating around "love", "light" and asking "mama" what's up.
 * **U2** - The song writer's observations of life journeys, observations with people ("haven't found", "bullet [the] blue", "give away") and foreign places ("streets"). Some unique Bono-esque chorus constructions emerge with "la di day".
 
-Just like the NRC emotional sentiment, the bi-grams and tri-grams also begin to paint a picture that each artist has its own "ngram frequency profile". On face value it could be argued that **Daft Punk** and **Killswitch Engage** share the same ngram of `time`, and therefore this makes these artists similar. However we now know from the NRC emotional sentiment that these artists are on very different ends of the emotional profile spectrum, **Daft Punk** is full of joy, while **Killswitch Engage** contains a great deal of sadness.
+Just like the NRC emotional sentiment, the bi-grams and tri-grams also begin to paint a picture that each artist has its own "ngram frequency profile". On face value it could be argued that **Daft Punk** and **Killswitch Engage** share the same ngram of "time", and therefore this makes these artists similar. However we now know from the NRC emotional sentiment that these artists are on very different ends of the emotional profile spectrum, **Daft Punk** is full of joy, while **Killswitch Engage** contains a great deal of sadness.
 
 In terms of subject matter similarity, it is curious to note:
 
-* **Elton John** has written lyrics about himself talking to a female person named `Amy`, and **Led Zeppelin** has done something very similar by questioning a perceived anonymous female person named `mama`.
-* **Iron Maiden** has lyrics which describe a location known as the `village`, while **U2** have lyrics which describe a location which has `streets`.
+* **Elton John** has written lyrics about himself talking to a female person named "Amy", and **Led Zeppelin** has done something very similar by questioning a perceived anonymous female person named "mama".
+* **Iron Maiden** has lyrics which describe a location known as the "village", while **U2** have lyrics which describe a location which has "streets".
 
 How does all this new information rate against the hypothesis that this collection of music is eclectic? This section has begun to uncover the hidden subject matter and potential (and subjective) meaning of the albums and songs in the collection. While the ngram frequency counts are varied across the artists, the similarities in subject matter via similar analogies, give rise to the counter argument.
 
@@ -1615,7 +1615,7 @@ This visualisation could be interpreted as more a novelty than providing any sol
 In deriving any meaning from this venn diagram, it appears:
 
 * **U2's The Joshua Tree** is a versatile linking centroid in this venn diagram. This evokes a more philosophical question, can the other albums realistically be "linked" together via **The Joshua Tree**? 
-* **Iron Maiden** and **Killswitch Engage** share the most visual overlap, closely followed by **U2** and **Elton John** then **U2** and **Led Zeppelin**
+* **Iron Maiden** and **Killswitch Engage** share the most visual overlap, closely followed by **U2** and **Elton John** then **U2** and **Led Zeppelin**.
 * **Daft Punk** is very weakly grazing the border of **U2** and **Killswitch Engage**. Does this mean they are most dis-similar of all the artists?
 
 
@@ -1644,7 +1644,7 @@ This dendogram offers us a very alternative view of how similar and different th
 
 Curious how there is one large cluster in the middle, illustrated with the green rectangle. It is difficult to discern why some songs are in certain clusters:
 
-* The most repetitive, and lowest lexically diverse songs Daft Punk's "One More Time" and "Harder, Better, Faster, Stronger" are in the same cluster as one of the least repetitive, more lexically diverse songs, Led Zeppelin's "Kashmir", and a wide variety of songs from all other artists.
+* The most repetitive, and lowest lexically diverse songs **Daft Punk's** "One More Time" and "Harder, Better, Faster, Stronger" are in the same cluster as one of the least repetitive, more lexically diverse songs, **Led Zeppelin's** "Kashmir", and a wide variety of songs from all other artists.
 
 This visualisation paints a picture that there are both similarities and differences with song lyrics at the individual song level. No one, single artist dominates any of the dendogram's defined clusters, and so far we know from previous metrics all of the songs differ with word counts, vocabulary, lyric pattern structure and repetitiveness.
   
@@ -1766,7 +1766,6 @@ td_BetaMatrix <- tidy(STM_topic_model)
 
 td_BetaMatrix %>%
   group_by(topic) %>%
-  filter(beta > 0) %>%
   top_n(10, beta) %>%
   ungroup() %>%
   mutate(topic = paste0("Topic ", topic),
@@ -1835,10 +1834,10 @@ Acknowledging the technical challenge of working with a small amount of data and
 1.	**The hypothesis**. Can we prove this collection of music is truly an **eclectic** playlist?
 A variety of different text mining, NLP and machine learning techniques were utilised in this analysis and the results from these were objectively assessed. Here’s the short version of results:
 
-* 1.	Album word length – **the collection is eclectic**. Each artist and album has differing word durations and number of songs per album available for analysis
-* 2.	Word Clouds & Counts – **the collection is eclectic**. Each artist demonstrates different word selection
+* 1.	Album word length – **the collection is eclectic**. Each artist and album has differing word durations and number of songs per album available for analysis.
+* 2.	Word Clouds & Counts – **the collection is eclectic**. Each artist demonstrates different word selection.
 * 3.	Lexical Diversity – the collection is similar between four of the six artists. Vocabulary size is demonstrated.
-* 4.	SongSim matrix plots – **the collection is eclectic**. Each song has a different lyrical pattern “signature”, albums of songs tend to share similar base patterns and “flow”
+* 4.	SongSim matrix plots – **the collection is eclectic**. Each song has a different lyrical pattern “signature”, albums of songs tend to share similar base patterns and “flow”.
 * 5.	SongSim repetition scores – the collection is similar between four of the six artists. The average repetition of the artists & albums is demonstrated.
 * 6.	TF-IDF scores – **the collection is eclectic**; the words of significance differ between artists.
 * 7.	NRC Emotional Sentiment – **the collection is eclectic**. Each artist has an “emotional profile” which is distinct and different.
@@ -1849,20 +1848,25 @@ A variety of different text mining, NLP and machine learning techniques were uti
 * 12.	Dendogram of song similarity – **the collection is eclectic**. No strong themes emerging from the defined clusters.
 * 13.	Structured Topic Model (STM) – **the collection is eclectic**, 6 topics defined and neatly defined artist & album groupings under each of the 6 topics.
 
+&nbsp;
+
 
   **Summarising these results**, it will be majority vote. **Nine of the thirteen (9/13) of the methods used in this analysis pointed toward this selected collection of music is eclectic**. Of the four methods used which pointed toward similarity, two were related to using calculated “averages” metrics and two were generating an awareness that the perceived subject matter could be synonymously linked between artists, i.e. the listener could derive lyrical similarities and subject analogies between artists.
 	
+&nbsp;
 	
 2.	Can we identify **what makes a song unique, special similar and different** to another song?
     The SongSim matrix plots have been particularly useful in answering this question. The plots not only show the lyrical pattern “signature” for each song but also make us aware of the basic lyrical flow and structure of a song.
 
+&nbsp;
 
 3.	Do the albums actually **tell a story** or have a **meaning**?
     We could further explore this question in a subsequent analysis, as telling a story involves the concept of establishing a timeline. Observing how ngrams and emotional sentiment change as the album’s songs are listened/experienced in the order as they are listed i.e track 1,2,3… and even at the song level, as the song progresses from beginning to end, this could yield some interesting results on story telling.
     With regard to identifying a meaning with each of the albums, this is subjective to the listener (or reader of the lyrics in this case), we could begin to extract a basic meaning when observing the ngrams and the overall “emotional profile” NRC emotional sentiments.
 
+&nbsp;
 
-4.	Is it possible to obtain an **understanding** of a music album through **only observing its lyrics**, having never actually listened to it?”
+4.	Is it possible to obtain an **understanding** of a music album through **only observing its lyrics**, having never actually listened to it?
     Having never listened to Iron Maiden’s Powerslave album, this analysis has provided me with a much clearer understanding of what subjects, derived meanings, and sentiments this album contains. That’s pretty cool! The album song lyrics read like it’s a very intense album, and in particular “Rime of the Ancient Mariner” looks like a very epic song! I’m looking forward to listening to the album and validating this thought.
 
 &nbsp;
@@ -1914,7 +1918,7 @@ Many hours have been spent researching approaches for designing and writing this
 * [1] TV series “It might get loud” with The Edge (U2), Jimmy Page (Led Zeppelin), Jack White (The White Stripes)
 * [2] Game: Audiosurf (visualising sound, beat detection algorithms and digital signal processing)
 
-**Text mining, NLP and Machine Learning with Music Lyrics**
+**Text mining, NLP and Machine Learning with Music Lyrics & Text Scripts**
 
    [3]  [Prince analysis - NLP](https://www.datacamp.com/community/tutorials/R-nlp-machine-learning)
   
